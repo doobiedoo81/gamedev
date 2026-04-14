@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Bug-Free UI Edition</title>
+    <title>Crystal Jumper: The Troll Gacha Update</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
+        /* BUG FIX: This single line prevents the whole screen from turning blue on mobile taps! */
+        * { -webkit-tap-highlight-color: transparent; outline: none; }
+        
         body { margin: 0; padding: 0; background-color: #050508; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Arial', sans-serif; user-select: none;}
         #game-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;}
         canvas { box-shadow: 0 0 40px rgba(0, 255, 200, 0.15); border-radius: 12px; max-width: 100vw; max-height: 100vh; object-fit: contain; background: #000; cursor: pointer; }
@@ -28,7 +31,7 @@
         <div id="login-overlay">
             <div class="login-box">
                 <h2>SYSTEM LOGIN</h2>
-                <p style="color:#888; font-size:14px;">Enter Player ID to sync Cloud Save</p>
+                <p style="color:#888; font-size:14px;">Enter Player ID to load Cloud Save</p>
                 <input type="text" id="player-id" placeholder="e.g., hero" autocomplete="off">
                 <button class="login-btn" onclick="attemptLogin()">CONNECT</button>
                 <div id="loading-text">Authenticating...</div>
@@ -91,7 +94,6 @@ function attemptLogin() {
 const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d");
 let frames = 0; let state = "LOGIN"; 
 
-// --- Input Handling ---
 function getMousePos(evt) {
     let rect = canvas.getBoundingClientRect();
     let scaleX = canvas.width / rect.width; let scaleY = canvas.height / rect.height;
@@ -102,7 +104,7 @@ function getMousePos(evt) {
 canvas.addEventListener("pointerdown", (e) => {
     let pos = getMousePos(e); handleCanvasClick(pos.x, pos.y);
 });
-window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); }); 
+window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); });
 
 function isBtn(mx, my, bx, by, bw, bh) { return mx >= bx && mx <= bx+bw && my >= by && my <= by+bh; }
 function drawText(txt, x, y, size, col, align="center") { ctx.fillStyle=col; ctx.font=`bold ${size}px Arial`; ctx.textAlign=align; ctx.fillText(txt, x, y); }
@@ -113,11 +115,10 @@ function drawButton(x, y, w, h, text, col1, col2, txtCol="black", txtSize=20) {
     drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
 }
 
-// --- Game Data (BUG FIX: RESTORED MISSING PRICES) ---
+// --- Game Data ---
 const GACHA_COST = 50; 
 const SHARD_PRICES = { "Common": 300, "Rare": 800, "Epic": 2000, "Legendary": 5000 };
 const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
-
 const SKINS = [
     { id: 0, name: "Squire", color: [150, 150, 160], rarity: "Starter" },
     { id: 1, name: "Forest", color: [50, 200, 80], rarity: "Common" },
@@ -145,8 +146,7 @@ const RARITY_COLORS = { "Starter": "#9696a0", "Common": "#aaaaaa", "Rare": "#00f
 // Globals
 let platforms=[], gems=[], hazards=[], pads=[], orbs=[], particles=[], bg_props=[];
 let camera_x=0, last_plat_x=900, last_plat_y=400, distance=0, game_speed=5;
-let gacha_target=null, gacha_timer=0, gacha_msg="", shard_reward=0, showBanner=true, vault_sel=0, shard_sel=0;
-let gacha_return_state = "GACHA_MENU";
+let gacha_target=null, gacha_timer=0, gacha_msg="", shard_reward=0, showBanner=true, vault_sel=0, shard_sel=0, gacha_return_state="MENU";
 
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function AABB(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
@@ -154,30 +154,29 @@ function AABB(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y 
 // --- VFX Engine ---
 class Particle {
     constructor(x, y, color, type="normal") {
-        this.x=x; this.y=y; this.color=color; this.type=type; this.life=255; this.size=4;
-        if(type==="dust"){ this.dx=rand(-1,1); this.dy=rand(-2,0); this.life=150; this.size=rand(2,4); }
-        else if(type==="fire"){ this.dx=rand(-2,2); this.dy=rand(-5,-2); this.life=200; this.size=rand(3,8); }
+        this.x=x; this.y=y; this.color=color; this.type=type; this.life=255; this.size=rand(2,5);
+        this.dx=rand(-3,3); this.dy=rand(-3,3);
+        if(type==="fire"){ this.dy=rand(-5,-2); }
+        if(type==="dragon"){ this.dx=rand(-6,-3); this.dy=rand(-1,1); this.life=255; this.size=8; }
         else if(type==="dash"){ this.dx=rand(-8,-4); this.dy=rand(-2,2); this.life=255; this.size=6; }
-        else if(type==="dragon"){ this.dx=rand(-6,-3); this.dy=rand(-1,1); this.life=255; this.size=8; }
         else if(type==="bubble"||type==="leaf"||type==="snow"){ this.dx=rand(-2,2); this.dy=rand(-1,2); this.life=200; this.size=rand(2,5); }
         else if(type==="shockwave" || type==="wave"){ this.dx=0; this.dy=0; this.life=255; this.radius=5; }
         else if(type==="star"){ this.dx=rand(-4,4); this.dy=rand(-4,4); this.life=255; this.size=rand(2,5); }
-        else{ let a=rand(0,Math.PI*2); let s=rand(2,6); this.dx=Math.cos(a)*s; this.dy=Math.sin(a)*s; }
     }
     update() {
         this.x+=this.dx; this.y+=this.dy;
         if(this.type==="fire"||this.type==="dragon"){ this.life-=10; this.size=Math.max(0.1,this.size-0.1); }
         else if(this.type==="bubble"||this.type==="leaf"||this.type==="snow"){ this.life-=8; this.x+=Math.sin(frames*0.1)*2; }
-        else if(this.type==="shockwave"){ this.life-=10; this.radius+=5; } 
-        else if(this.type==="wave"){ this.life-=8; this.radius+=3; } // Epic pulse ring
-        else if(this.type==="star"){ this.life-=5; this.size=Math.max(0.1,this.size-0.05); }
+        else if(this.type==="wave"){ this.radius+=6; this.life-=12; } // Faster wave
+        else if(this.type==="shockwave"){ this.radius+=5; this.life-=15; } 
+        else if(this.type==="star"){ this.life-=6; this.size=Math.max(0.1,this.size-0.05); }
         else this.life-=10;
     }
     draw(ctx) {
         if(this.life<=0)return; ctx.save();
         if(this.type==="shockwave" || this.type==="wave"){
             ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-            ctx.strokeStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.lineWidth=3; ctx.stroke();
+            ctx.strokeStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.lineWidth=4; ctx.stroke();
         } else if (this.type==="leaf" || this.type==="snow") {
             ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.fillRect(this.x, this.y, this.size, this.size);
         } else if (this.type==="star") {
@@ -192,12 +191,11 @@ class Particle {
 
 // Entities
 class RectEntity { constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.active=true;} }
-class Gem extends RectEntity { constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} draw(ctx){ if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; ctx.fillStyle="#00ffc8"; ctx.beginPath(); ctx.arc(this.x+10,dy,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10,dy,5,0,Math.PI*2); ctx.fill(); } }
-class Hazard extends RectEntity { constructor(x,y){super(x,y-30,30,30);} draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.strokeStyle="#800000"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(this.x,this.y+this.h); ctx.lineTo(this.x+this.w,this.y+this.h); ctx.lineTo(this.x+this.w/2,this.y); ctx.closePath(); ctx.fill(); ctx.stroke(); } }
-class JumpPad extends RectEntity { constructor(x,y){super(x,y-15,40,15);this.timer=0;} draw(ctx){ if(!this.active)return; let h=this.timer>0?25:15; if(this.timer>0)this.timer--; let dy=this.y+this.h-h; ctx.fillStyle="#32ff64"; ctx.strokeStyle="white"; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(this.x+20,dy+h/2,20,h/2,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); } }
-class DashOrb extends RectEntity { constructor(x,y){super(x,y,30,30);this.pulse=0;} draw(ctx){ if(!this.active)return; this.pulse+=0.15; let r=15+Math.sin(this.pulse)*5; let dy=this.y+15+Math.sin(this.pulse)*5; ctx.fillStyle="#0096ff"; ctx.beginPath(); ctx.arc(this.x+15,dy,r,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#c8f0ff"; ctx.beginPath(); ctx.arc(this.x+15,dy,r*0.5,0,Math.PI*2); ctx.fill(); } }
+class Gem extends RectEntity { draw(ctx){ if(!this.active)return; let dy=this.y+Math.sin(frames*0.1)*5; ctx.fillStyle="#00ffc8"; ctx.beginPath(); ctx.arc(this.x+10,dy+10,8,0,Math.PI*2); ctx.fill(); } }
+class Hazard extends RectEntity { draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.beginPath(); ctx.moveTo(this.x,this.y+30); ctx.lineTo(this.x+30,this.y+30); ctx.lineTo(this.x+15,this.y); ctx.fill(); } }
+class JumpPad extends RectEntity { draw(ctx){ ctx.fillStyle="#32ff64"; ctx.fillRect(this.x,this.y,40,10); } }
+class DashOrb extends RectEntity { draw(ctx){ if(!this.active)return; ctx.fillStyle="#0096ff"; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,12,0,Math.PI*2); ctx.fill(); } }
 
-// --- Auto-Runner Player ---
 class Player {
     constructor() { this.x=150; this.y=300; this.w=30; this.h=40; this.vy=0; this.gravity=0.65; this.jumpPower=-13; this.onGround=false; this.dashTimer=0; this.trail=[]; this.updateSkin(); }
     updateSkin(fId=null) {
@@ -230,10 +228,8 @@ class Player {
     }
     update() {
         let vx = game_speed;
-
         if(this.dashTimer>0){ 
-            this.dashTimer--; vx=16; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lerp to sky
+            this.dashTimer--; vx=16; this.y += (150 - this.y) * 0.1; this.vy = 0;
             
             if (this.skinName === "DRAGON WARRIOR") {
                 particles.push(new Particle(this.x, this.y+this.h/2+Math.sin(frames*0.5)*20, [255,215,0], "dragon"));
@@ -253,9 +249,7 @@ class Player {
                 last_plat_x = Math.max(last_plat_x, dropX + 500); 
             }
             if (this.dashTimer < 10) this.vy += this.gravity;
-        } else {
-            this.vy+=this.gravity;
-        }
+        } else this.vy+=this.gravity;
 
         this.x+=vx; 
         this.y+=this.vy; this.onGround=false; 
@@ -313,7 +307,7 @@ class Player {
 
         if (this.rarity === "Legendary") {
             if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
+                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO" ? "rgba(255, 200, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
                 ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
             } else if (this.skinName === "GALAXY") {
@@ -353,7 +347,6 @@ function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
         ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill();
     }
     ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.closePath(); ctx.save(); ctx.clip();
-    
     if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
     ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill();
     
@@ -414,37 +407,43 @@ function drawBackground() {
     }
 }
 
-// Parallax & Level Gen
+// BUG FIX: Generate Chunk constrained limits to ensure perfectly jumpable terrain
 function generateChunk(lX, lY) {
     let cX=lX; let cY=lY; let np=Math.floor(rand(4,7));
     for(let i=0;i<np;i++){
-        let gap = rand(100, 200 + (game_speed*10)); 
-        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-80,80))); let pW=rand(200,500); 
+        let gap = rand(80, 160); // Strictly constrained gap so jumps never fail
+        cX+=gap; 
+        cY=Math.max(200, Math.min(500, cY+rand(-50,50))); // Constrained height variation
+        let pW=rand(200,500); 
         platforms.push(new RectEntity(cX, cY, pW, 20));
 
-        if(Math.random()<0.35){
-            let aY=Math.max(100, cY-rand(140,180)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
-            if(Math.random()<0.3) orbs.push(new DashOrb(cX + pW/2, aY-40)); else for(let j=0;j<4;j++) gems.push(new Gem(cX+80+(j*40), aY-35));
-            pads.push(new JumpPad(cX+30, cY));
+        if(Math.random()<0.3){
+            let aY=Math.max(100, cY-rand(120,150)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
+            if(Math.random()<0.4) orbs.push(new DashOrb(cX + pW/2, aY-40)); else for(let j=0;j<4;j++) gems.push(new Gem(cX+80+(j*40), aY-35));
+            pads.push(new JumpPad(cX+20, cY)); // Safe pad placement
         }
 
         bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
 
         let r=Math.random(); 
-        if(r<0.08) orbs.push(new DashOrb(cX+pW/2, cY-40)); 
-        else if(r<0.3) hazards.push(new Hazard(cX+pW/2, cY)); 
+        if(r<0.05) orbs.push(new DashOrb(cX+pW/2, cY-40)); 
+        else if(r<0.25) hazards.push(new Hazard(cX+pW/2 + 50, cY)); // Pulled hazard away from direct edge
         else if(r<0.7) for(let j=0;j<Math.floor(rand(1,5));j++) gems.push(new Gem(cX+pW/2+(j*30), cY-35));
         cX+=pW;
     }
     last_plat_x=cX; last_plat_y=cY;
 }
 
+// --- GACHA DRAMA LOGIC ---
+let dramaType = "none"; 
+
 function rollGacha() {
-    let r = Math.random();
-    if (r > 0.99) return SKINS.filter(s => s.rarity === "Legendary")[Math.floor(Math.random()*4)];
-    if (r > 0.91) return SKINS.filter(s => s.rarity === "Epic")[Math.floor(Math.random()*4)];
-    if (r > 0.60) return SKINS.filter(s => s.rarity === "Rare")[Math.floor(Math.random()*5)];
-    return SKINS.filter(s => s.rarity === "Common")[Math.floor(Math.random()*6)];
+    let r = Math.random(); let pool = [];
+    if (r > 0.99) { pool = SKINS.filter(s => s.rarity === "Legendary"); dramaType = "ascension"; }
+    else if (r > 0.91) { pool = SKINS.filter(s => s.rarity === "Epic"); dramaType = Math.random() > 0.5 ? "heartbreaker" : "none"; }
+    else if (r > 0.60) { pool = SKINS.filter(s => s.rarity === "Rare"); dramaType = "none"; }
+    else { pool = SKINS.filter(s => s.rarity === "Common"); dramaType = "none"; }
+    return pool[Math.floor(Math.random() * pool.length)];
 }
 
 const player = new Player(); const preview = new Player();
@@ -495,8 +494,6 @@ function handleCanvasClick(mx, my) {
                 gacha_target = rollGacha();
                 preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
                 state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "GACHA_MENU";
-            } else {
-                alert("Not enough Gems!"); // Alert instead of failing silently
             }
         }
     }
@@ -518,7 +515,7 @@ function handleCanvasClick(mx, my) {
                     saveData.shards -= cost; syncToCloud();
                     gacha_target = missing[Math.floor(Math.random() * missing.length)];
                     preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
-                    state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "SHARD_MENU";
+                    state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "SHARD_MENU"; dramaType = "none";
                 } else alert(`You already own all ${r} skins!`);
             } else alert(`Not enough Shards! You need ${cost}.`);
         }
@@ -558,25 +555,43 @@ function update() {
     } else if (state === "GACHA_ANIM") {
         gacha_timer--;
         
-        // PERFECTED VFX FOR PULLING
         let pct = 1 - (gacha_timer / 180); 
+        let col = [150, 150, 150]; // Base Grey
         
-        if (gacha_timer % 3 === 0) {
+        // --- DRAMA LOGIC VISUALS ---
+        if (dramaType === "heartbreaker") {
+            if (pct > 0.4 && pct < 0.55) col = [255, 215, 0]; // Flash Gold!
+            else col = [255, 50, 50]; // Stay Red
+        } else if (dramaType === "ascension") {
+            if (pct < 0.4) col = [0, 255, 255]; // Start Cyan
+            else if (pct < 0.8) col = [255, 50, 50]; // Turn Red
+            else col = [255, 215, 0]; // BOOM Gold!
+        } else {
             let r = gacha_target.rarity;
-            if (r === "Legendary") particles.push(new Particle(450+rand(-60,60), 300+rand(-60,60), [255,215,0], "star"));
-            else if (r === "Epic" && gacha_timer % 15 === 0) particles.push(new Particle(450, 300, [255,50,50], "wave"));
-            else if (r === "Rare") particles.push(new Particle(450+rand(-40,40), 300+rand(-40,40), [0,255,255], "normal"));
-            else particles.push(new Particle(450+rand(-30,30), 300+rand(-30,30), [150,150,150], "dust"));
+            if(r==="Rare") col=[0, 255, 255];
+            if(r==="Epic") col=[255, 50, 50];
+            if(r==="Legendary") col=[255, 215, 0];
+        }
+        
+        // --- CUSTOM PARTICLES ---
+        if (frames % 4 === 0) {
+            if (col[0] === 255 && col[1] === 215) { // Render Gold Effects
+                particles.push(new Particle(450+rand(-40,40), 300+rand(-40,40), col, "star"));
+                particles.push(new Particle(450, 300, col, "wave")); 
+            } else if (col[0] === 255 && col[1] === 50) { // Render Epic Effects
+                particles.push(new Particle(450+rand(-30,30), 300+rand(-30,30), col, "normal"));
+            }
         }
 
         if (gacha_timer <= 0) {
-            let c = gacha_target.color; 
-            for(let i=0;i<60;i++) particles.push(new Particle(450, 300, c));
-            if (gacha_target.rarity === "Legendary") for(let i=0;i<30;i++) particles.push(new Particle(450, 300, [255,215,0], "star"));
-            if (gacha_target.rarity === "Epic") for(let i=0;i<3;i++) particles.push(new Particle(450, 300, [255,50,50], "wave"));
+            for(let i=0;i<60;i++) particles.push(new Particle(450, 300, col));
+            if (col[0] === 255 && col[1] === 215) {
+                for(let i=0;i<30;i++) particles.push(new Particle(450, 300, col, "star"));
+                for(let i=0;i<5;i++) particles.push(new Particle(450, 300, col, "wave"));
+            }
 
             if (saveData.unlocked.includes(gacha_target.id)) {
-                gacha_msg="DUPLICATE"; shard_reward = gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
+                gacha_msg="DUPLICATE"; shard_reward=gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
             } else { gacha_msg="NEW SKIN!"; saveData.unlocked.push(gacha_target.id); }
             syncToCloud(); state = "GACHA_RESULT";
         }
@@ -656,7 +671,6 @@ function draw() {
         drawText("CRYSTAL JUMPER", 450, 100, 54, "#c8c8ff");
         drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
         
-        // Clean Centered Menu
         drawButton(350, 180, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
         drawButton(350, 260, 200, 60, "VAULT", "#800080", "#c832ff", "white");
         drawButton(350, 330, 200, 60, "GACHA", "#808000", "#ffd700", "black");
@@ -711,19 +725,31 @@ function draw() {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
         
         let pct = 1 - (gacha_timer / 180); 
-        let r_col = [150, 150, 150]; 
-        if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; 
-        if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; 
-        if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; 
+        let col = [150, 150, 150]; // Default Grey
         
-        let r = 200+(r_col[0]-200)*pct, g = 200+(r_col[1]-200)*pct, b = 200+(r_col[2]-200)*pct; 
-        let rad = 20+(pct*40); let sx = rand(-5,5)*pct, sy = rand(-5,5)*pct;
+        // --- DRAMA LOGIC VISUALS ---
+        if (dramaType === "heartbreaker") {
+            if (pct > 0.4 && pct < 0.55) col = [255, 215, 0]; // Flash Gold!
+            else col = [255, 50, 50]; // Stay Red
+        } else if (dramaType === "ascension") {
+            if (pct < 0.4) col = [0, 255, 255]; // Start Cyan
+            else if (pct < 0.8) col = [255, 50, 50]; // Turn Red
+            else col = [255, 215, 0]; // BOOM Gold!
+        } else {
+            let r = gacha_target.rarity;
+            if(r==="Rare") col=[0, 255, 255];
+            if(r==="Epic") col=[255, 50, 50];
+            if(r==="Legendary") col=[255, 215, 0];
+        }
+        
+        // Rendering the Orb
+        ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.beginPath(); ctx.arc(450, 300, 30 + pct*50, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450, 300, 15 + pct*25, 0, Math.PI*2); ctx.fill(); 
+        
+        // Draw Particles behind text
+        particles.forEach(p=>p.draw(ctx));
 
-        ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad/2, 0, Math.PI*2); ctx.fill(); 
-        drawText("SUMMONING...", 450, 100, 48, `rgb(${r},${g},${b})`);
-
-        for(let p of particles) p.draw(ctx); // Draw the custom rarity particles over the aura!
+        drawText("SUMMONING...", 450, 100, 48, `rgb(${col[0]},${col[1]},${col[2]})`);
 
     } else if (state === "GACHA_RESULT") {
         ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600); for(let p of particles) p.draw(ctx);
