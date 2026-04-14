@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Mobile Web Edition</title>
+    <title>Crystal Jumper: Adaptive Web Edition</title>
     <style>
         body {
             margin: 0;
@@ -16,8 +16,8 @@
             justify-content: center;
             height: 100vh;
             font-family: 'Arial', sans-serif;
-            overflow: hidden; /* Prevents scrolling down on mobile */
-            touch-action: none; /* Prevents double-tap zooming */
+            overflow: hidden;
+            touch-action: none;
         }
         canvas {
             background-color: #0f0f19;
@@ -25,43 +25,38 @@
             border-radius: 10px;
             image-rendering: pixelated;
             max-width: 95vw;
-            max-height: 65vh; /* Leaves room for controls */
+            max-height: 95vh; /* Default for PC */
             object-fit: contain;
         }
         
-        /* Mobile Virtual Gamepad */
+        /* Mobile Virtual Gamepad - HIDDEN BY DEFAULT ON PC */
         #gamepad {
-            display: flex;
+            display: none; 
             flex-direction: column;
             gap: 10px;
             margin-top: 15px;
             width: 95vw;
             max-width: 800px;
         }
-        .row {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
+        
+        /* MAGIC CSS: Show buttons ONLY on touchscreens or narrow phone screens */
+        @media (max-width: 800px), (hover: none) and (pointer: coarse) {
+            canvas {
+                max-height: 65vh; /* Shrink canvas on mobile to fit buttons */
+            }
+            #gamepad {
+                display: flex; /* Reveal the buttons! */
+            }
         }
+
+        .row { display: flex; justify-content: center; gap: 10px; }
         .btn {
-            background: #202030;
-            color: white;
-            border: 2px solid #505064;
-            border-radius: 10px;
-            padding: 15px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            user-select: none;
-            touch-action: none;
-            cursor: pointer;
-            flex: 1;
-            text-align: center;
+            background: #202030; color: white; border: 2px solid #505064;
+            border-radius: 10px; padding: 15px 20px; font-size: 16px;
+            font-weight: bold; user-select: none; touch-action: none;
+            cursor: pointer; flex: 1; text-align: center;
         }
-        .btn:active {
-            background: #00ffc8;
-            color: black;
-            border-color: white;
-        }
+        .btn:active { background: #00ffc8; color: black; border-color: white; }
         .btn-action { background: #0096ff; }
         .btn-action:active { background: white; }
     </style>
@@ -87,16 +82,19 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- Input Handling (Keyboard & Touch Unified) ---
+// --- Detect if device is Mobile/Touch ---
+const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+// --- Input Handling ---
 const keyPresses = {};
 
-// 1. Keyboard
+// Keyboard
 window.addEventListener("keydown", e => { 
     if (!keyPresses[e.code]) { keyPresses[e.code] = true; handleStateInput(e.code); }
 });
 window.addEventListener("keyup", e => { keyPresses[e.code] = false; });
 
-// 2. Touch / Mobile Buttons
+// Touch / Mobile Buttons
 function bindButton(id, code) {
     const btn = document.getElementById(id);
     const triggerDown = (e) => { e.preventDefault(); if (!keyPresses[code]) { keyPresses[code] = true; handleStateInput(code); } };
@@ -104,16 +102,16 @@ function bindButton(id, code) {
     
     btn.addEventListener("touchstart", triggerDown);
     btn.addEventListener("touchend", triggerUp);
-    btn.addEventListener("mousedown", triggerDown); // Works for mouse clicks too
+    btn.addEventListener("mousedown", triggerDown);
     btn.addEventListener("mouseup", triggerUp);
 }
 
 bindButton("btn-left", "ArrowLeft");
 bindButton("btn-right", "ArrowRight");
-bindButton("btn-jump", "Space");   // Space acts as Jump and OK/Enter
-bindButton("btn-menu", "KeyM");    // We'll map M to menu return
+bindButton("btn-jump", "Space");   
+bindButton("btn-menu", "KeyM");    
 bindButton("btn-gacha", "KeyG");
-bindButton("btn-skin", "KeyC");    // Added KeyC specifically to cycle skins easily on mobile
+bindButton("btn-skin", "KeyC");    
 
 // --- Databases ---
 const GACHA_COST = 50;
@@ -274,12 +272,10 @@ class Player {
             this.vy += this.gravity;
         }
 
-        // Use Space as the unified action button
         if ((keyPresses["ArrowUp"] || keyPresses["Space"] || keyPresses["KeyW"]) && this.onGround && this.dashTimer === 0) {
             this.jump();
         }
 
-        // X Collision
         this.x += this.vx;
         for (let p of platforms) {
             if (AABB(this, p)) {
@@ -287,7 +283,6 @@ class Player {
                 else if (this.vx < 0) this.x = p.x + p.w;
             }
         }
-        // Y Collision
         this.y += this.vy; this.onGround = false;
         for (let p of platforms) {
             if (AABB(this, p)) {
@@ -296,7 +291,6 @@ class Player {
             }
         }
 
-        // Interactions
         for (let p of pads) if (p.active && AABB(this, p) && this.vy >= 0) { this.jump(true); p.timer = 15; }
         for (let o of orbs) if (o.active && AABB(this, o)) { 
             o.active = false; this.dashTimer = 60; 
@@ -393,20 +387,25 @@ const preview = new Player();
 
 function handleStateInput(code) {
     if (state === "MENU") {
-        if (code === "Enter" || code === "Space") { // Added Space as a trigger for mobile OK button
+        if (code === "Enter" || code === "Space") {
             state = "PLAYING"; player.x = 100; player.y = 300; player.vy = 0; player.dashTimer = 0; player.trail = [];
             platforms = [new RectEntity(0, 400, 800, 20)]; gems=[]; hazards=[]; pads=[]; orbs=[];
             last_plat_x = 800; last_plat_y = 400; camera_x = 0; distance = 0;
         } else if (code === "KeyG") state = "GACHA_MENU";
-        else if (code === "ArrowRight" || code === "KeyC") { // Added KeyC for the mobile Cycle Skin button
+        else if (code === "ArrowRight" || code === "KeyC") {
             if (saveData.unlocked.length > 0) {
                 let idx = saveData.unlocked.indexOf(saveData.equipped_id);
                 saveData.equipped_id = saveData.unlocked[(idx + 1) % saveData.unlocked.length];
                 player.updateSkin(); saveGame();
             }
+        } else if (code === "KeyS") {
+            if (saveData.shards >= SHARD_COST) {
+                let missing = SKINS.filter(s => s.rarity === "Legendary" && !saveData.unlocked.includes(s.id));
+                if (missing.length > 0) { saveData.shards -= SHARD_COST; saveData.unlocked.push(missing[0].id); saveGame(); }
+            }
         }
     } else if (state === "GACHA_MENU") {
-        if (code === "Escape" || code === "KeyM") state = "MENU"; // Map M to menu return
+        if (code === "Escape" || code === "KeyM") state = "MENU";
         else if (code === "Space" && saveData.gems >= GACHA_COST) {
             saveData.gems -= GACHA_COST; saveGame();
             gacha_target = rollGacha();
@@ -418,7 +417,7 @@ function handleStateInput(code) {
     } else if (state === "PLAYING" && (code === "Escape" || code === "KeyM")) {
         state = "MENU";
     } else if (state === "GAMEOVER") {
-        if (code === "Space") handleStateInput("Enter"); // Space restarts game on mobile
+        if (code === "Space" || code === "KeyR") handleStateInput("Enter");
         else if (code === "KeyM") state = "MENU";
     }
 }
@@ -448,7 +447,6 @@ function update() {
         if (dead) {
             state = "GAMEOVER";
             if (distance > saveData.high_score) { saveData.high_score = distance; saveGame(); }
-            // Release movement keys so player doesn't instantly run on restart
             keyPresses["ArrowLeft"] = false; keyPresses["ArrowRight"] = false;
         }
 
@@ -510,22 +508,27 @@ function draw() {
         drawText("ELIMINATED", 400, 250, 48, "#ff3232");
         drawText(`Final Distance: ${distance}m`, 400, 300, 24, "white");
         drawText(`High Score: ${saveData.high_score}m`, 400, 330, 24, "#ffd700");
-        drawText("Tap JUMP to Restart | Tap MENU to exit", 400, 400, 18, "#aaaaaa");
+        drawText(isMobile ? "Tap JUMP/OK to Restart | Tap MENU to exit" : "Press [ENTER] to Restart | Press [M] for Menu", 400, 400, 18, "#aaaaaa");
 
     } else if (state === "MENU") {
         for (let p of particles) p.draw(ctx);
         player.x = 400 - 15; player.y = 350; player.draw(ctx);
 
-        drawText("CRYSTAL JUMPER: WEB EDITION", 400, 100, 40, "#c8c8ff");
-        drawText("Tap JUMP/OK to Run", 400, 200, 24, "white");
+        drawText("CRYSTAL JUMPER: ADAPTIVE", 400, 100, 40, "#c8c8ff");
+        drawText(isMobile ? "Tap JUMP/OK to Run" : "Press [ENTER] to Run", 400, 200, 24, "white");
+        drawText(isMobile ? "Tap GACHA to enter Temple" : "Press [G] to enter Gacha Temple", 400, 250, 24, "#ffd700");
         drawText(`Gems: ${saveData.gems} | Shards: ${saveData.shards}`, 400, 300, 24, "#00ffc8");
-        drawText(`Equipped: ${player.skinName}`, 400, 460, 24, `rgb(${player.color.join(",")})`);
-        drawText(`Use On-Screen buttons to Navigate`, 400, 550, 18, "#aaaaaa");
+        
+        drawText(isMobile ? "-> Tap CYCLE SKIN to Equip <-" : "-> Press [RIGHT ARROW] to Equip Skins <-", 400, 450, 18, "#aaaaaa");
+        drawText(`Equipped: ${player.skinName}`, 400, 480, 24, `rgb(${player.color.join(",")})`);
+        
+        if (!isMobile) drawText(`Press [S] to spend ${SHARD_COST} Shards for a missing Legendary`, 400, 530, 18, "#ff3264");
 
     } else if (state === "GACHA_MENU") {
         drawText("GACHA TEMPLE", 400, 100, 48, "#ffd700");
         drawText(`Cost: ${GACHA_COST} Gems | Wallet: ${saveData.gems} Gems`, 400, 180, 24, "#00ffc8");
-        drawText("Tap JUMP/OK to Pull", 400, 300, 24, "white");
+        drawText(isMobile ? "Tap JUMP/OK to Pull" : "Press [SPACE] to Invoke Crystal", 400, 300, 24, "white");
+        drawText(isMobile ? "Tap MENU to Return" : "Press [G] or [ESC] to Return", 400, 550, 18, "#aaaaaa");
 
     } else if (state === "GACHA_ANIM") {
         let pct = 1 - (gacha_timer / 180);
@@ -551,7 +554,8 @@ function draw() {
             drawText("DUPLICATE DETECTED", 400, 380, 24, "#ff3232");
             drawText(`Converted to +${shard_reward} Shards`, 400, 420, 24, "#ffd700");
         } else { drawText("NEW SKIN UNLOCKED!", 400, 380, 24, "#00ffc8"); }
-        drawText("Tap JUMP/OK to Continue", 400, 500, 18, "#aaaaaa");
+        
+        drawText(isMobile ? "Tap JUMP/OK to Continue" : "Press [SPACE] to Continue", 400, 500, 18, "#aaaaaa");
     }
 }
 
