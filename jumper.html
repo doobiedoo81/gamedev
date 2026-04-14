@@ -164,7 +164,10 @@ function attemptLogin() {
 // ==========================================
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let isMobile = window.matchMedia("(max-width: 800px), (hover: none) and (pointer: coarse)").matches;
+window.addEventListener("resize", () => {
+    isMobile = window.matchMedia("(max-width: 800px), (hover: none) and (pointer: coarse)").matches;
+});
 
 // --- Inputs ---
 const keyPresses = {};
