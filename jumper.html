@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: The Power-Up Update</title>
+    <title>Crystal Jumper: Clean Performance Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -13,8 +13,8 @@
         body { margin: 0; padding: 0; background-color: #050508; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Arial', sans-serif;}
         #game-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;}
         canvas { 
-            box-shadow: 0 0 40px rgba(0, 255, 200, 0.15); 
-            border-radius: 12px; 
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.1); 
+            border-radius: 8px; 
             width: 100%; 
             max-width: 900px; 
             aspect-ratio: 900 / 600; 
@@ -23,12 +23,12 @@
         }
         
         #login-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 8, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
-        .login-box { background: #101014; padding: 40px; border-radius: 15px; border: 1px solid #00ffc8; text-align: center; width: 80%; max-width: 350px; box-shadow: 0 0 30px rgba(0,255,200,0.2); }
-        .login-box h2 { color: #ffd700; margin-top: 0; font-size: 28px; letter-spacing: 2px; }
-        .login-box input { width: 90%; padding: 12px; margin: 20px 0; border-radius: 8px; border: 1px solid #303040; background: #0a0a10; color: white; font-size: 18px; text-align: center; }
-        .login-btn { background: linear-gradient(90deg, #0096ff, #00ffc8); color: black; border: none; padding: 15px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 18px; text-transform: uppercase; transition: transform 0.1s; }
-        .login-btn:active { transform: scale(0.95); }
-        #loading-text { display: none; color: #00ffc8; margin-top: 15px; font-weight: bold; font-size: 18px;}
+        .login-box { background: #101014; padding: 40px; border-radius: 12px; border: 1px solid #00ffc8; text-align: center; width: 80%; max-width: 350px; }
+        .login-box h2 { color: #ffd700; margin-top: 0; font-size: 26px; }
+        .login-box input { width: 85%; padding: 12px; margin: 20px 0; border-radius: 6px; border: 1px solid #303040; background: #0a0a10; color: white; font-size: 16px; text-align: center; }
+        .login-btn { background: #0096ff; color: white; border: none; padding: 15px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; }
+        .login-btn:active { background: #00ffc8; color: black; }
+        #loading-text { display: none; color: #00ffc8; margin-top: 15px; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -71,8 +71,8 @@ async function fetchCloudData(username) {
     try {
         const doc = await db.collection("players").doc(username).get();
         if (doc.exists) return doc.data();
-        else return { gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 };
-    } catch (e) { return { gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 }; }
+        else return { gems: 1500, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 };
+    } catch (e) { return { gems: 1500, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 }; }
 }
 function syncToCloud() { if (currentPlayerId) db.collection("players").doc(currentPlayerId).set(saveData, { merge: true }); }
 async function fetchLeaderboard() {
@@ -84,7 +84,7 @@ async function fetchLeaderboard() {
 
 function attemptLogin() {
     let idInput = document.getElementById("player-id").value.trim().toLowerCase();
-    if (idInput === "") return alert("Please enter a Player ID!");
+    if (idInput === "") return;
     document.querySelector(".login-btn").style.display = "none"; document.getElementById("loading-text").style.display = "block";
     fetchCloudData(idInput).then(data => {
         currentPlayerId = idInput; saveData = data;
@@ -96,13 +96,11 @@ function attemptLogin() {
 }
 
 // ==========================================
-// 2. GAME ENGINE SETUP
+// 2. CORE ENGINE
 // ==========================================
 const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d");
-let frames = 0; let state = "LOGIN"; 
+let frames = 0; let state = "LOGIN"; let isPointerDown = false;
 
-// --- Input Handling ---
-let isPointerDown = false;
 function getMousePos(evt) {
     let rect = canvas.getBoundingClientRect();
     let scaleX = canvas.width / rect.width; let scaleY = canvas.height / rect.height;
@@ -117,17 +115,13 @@ window.addEventListener("keyup", (e) => { if(e.code==="Space"||e.code==="ArrowUp
 
 function isBtn(mx, my, bx, by, bw, bh) { return mx >= bx && mx <= bx+bw && my >= by && my <= by+bh; }
 function drawText(txt, x, y, size, col, align="center") { ctx.fillStyle=col; ctx.font=`bold ${size}px Arial`; ctx.textAlign=align; ctx.fillText(txt, x, y); }
-function drawButton(x, y, w, h, text, col1, col2, txtCol="black", txtSize=20) {
-    let grad = ctx.createLinearGradient(x, y, x, y+h); grad.addColorStop(0, col1); grad.addColorStop(1, col2);
-    ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect(x,y,w,h, 10); ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.stroke();
+function drawButton(x, y, w, h, text, col1, col2, txtCol="white", txtSize=20) {
+    ctx.fillStyle = col1; ctx.beginPath(); ctx.roundRect(x,y,w,h, 8); ctx.fill();
+    ctx.strokeStyle = col2; ctx.lineWidth = 2; ctx.stroke();
     drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
 }
 
-function lerp(a, b, t) { return a + (b - a) * t; }
-function lerpColor(c1, c2, t) { return [lerp(c1[0],c2[0],t), lerp(c1[1],c2[1],t), lerp(c1[2],c2[2],t)]; }
-
-// --- Game Data ---
+// Optimization: Leaner Data
 const GACHA_COST = 50; 
 const SHARD_PRICES = { "Common": 300, "Rare": 800, "Epic": 2000, "Legendary": 5000 };
 const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
@@ -153,109 +147,50 @@ const SKINS = [
     { id: 18, name: "ABYSSAL", color: [0, 255, 255], rarity: "Legendary" },
     { id: 19, name: "DRAGON WARRIOR", color: [255, 215, 0], rarity: "Legendary" }
 ];
-const RARITY_COLORS = { "Starter": "#9696a0", "Common": "#aaaaaa", "Rare": "#00ffff", "Epic": "#ff3232", "Legendary": "#ffd700" };
+const RARITY_COLORS = { "Starter": "#aaaaaa", "Common": "#aaaaaa", "Rare": "#00ffff", "Epic": "#ff3232", "Legendary": "#ffd700" };
 
-// Globals
-let platforms=[], gems=[], items=[], collect_shards=[], hazards=[], pads=[], particles=[], bg_props=[], bg_buildings=[];
-let camera_x=0, last_plat_x=900, last_plat_y=400, distance=0, game_speed=5;
-let gacha_target=null, gacha_timer=0, gacha_msg="", shard_reward=0, showBanner=true, vault_sel=0, shard_sel=0;
-let gacha_return_state="MENU";
+let platforms=[], gems=[], items=[], shards=[], hazards=[], pads=[], particles=[];
+let camera_x=0, last_plat_x=900, last_plat_y=400, distance=0, game_speed=6;
+let gacha_target=null, gacha_timer=0, gacha_msg="", shard_reward=0, vault_sel=0, shard_sel=0, gacha_return="MENU";
 
-// --- VFX Engine ---
+// Simplified VFX Engine for Performance
 class Particle {
     constructor(x, y, color, type="normal") {
-        this.x=x; this.y=y; this.color=color; this.type=type; this.life=255; this.size=rand(2,5);
-        this.dx=rand(-3,3); this.dy=rand(-3,3);
-        if(type==="fire"){ this.dy=rand(-5,-2); }
-        if(type==="dragon"){ this.dx=rand(-6,-2); this.dy=rand(-1,1); this.life=255; this.size=12; }
-        else if(type==="dash"){ this.dx=rand(-8,-4); this.dy=rand(-2,2); this.life=255; this.size=8; }
-        else if(type==="bubble"||type==="leaf"||type==="snow"){ this.dx=rand(-2,2); this.dy=rand(-1,2); this.life=200; this.size=rand(2,5); }
-        else if(type==="wave"){ this.dx=0; this.dy=0; this.radius=5; }
-        else if(type==="star"){ this.dx=rand(-6,6); this.dy=rand(-6,6); this.life=255; this.size=rand(4,8); }
+        this.x=x; this.y=y; this.color=color; this.type=type; this.life=255; this.size=Math.random()*3+2;
+        this.dx=(Math.random()-0.5)*6; this.dy=(Math.random()-0.5)*6;
+        if(type==="fly"){ this.dx=(Math.random()-1)*8; this.dy=(Math.random()-0.5)*2; this.size=6; }
+        if(type==="wave"){ this.dx=0; this.dy=0; this.radius=5; }
     }
     update() {
         this.x+=this.dx; this.y+=this.dy;
-        if(this.type==="fire"||this.type==="dragon"){ this.life-=10; this.size=Math.max(0.1,this.size-0.1); }
-        else if(this.type==="bubble"||this.type==="leaf"||this.type==="snow"){ this.life-=8; this.x+=Math.sin(frames*0.1)*2; }
-        else if(this.type==="wave"){ this.radius+=10; this.life-=12; }
-        else if(this.type==="star"){ this.life-=6; this.size=Math.max(0.1,this.size-0.05); }
-        else this.life-=10;
+        if(this.type==="wave"){ this.radius+=8; this.life-=15; }
+        else this.life-=12;
     }
     draw(ctx) {
-        if(this.life<=0)return; ctx.save();
+        if(this.life<=0)return; 
         if(this.type==="wave"){
             ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-            ctx.strokeStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.lineWidth=4; ctx.stroke();
-        } else if (this.type==="leaf" || this.type==="snow") {
-            ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.fillRect(this.x, this.y, this.size, this.size);
-        } else if (this.type==="star") {
-            ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
-            ctx.beginPath(); ctx.moveTo(this.x, this.y-this.size); ctx.lineTo(this.x+this.size/2, this.y-this.size/2); ctx.lineTo(this.x+this.size, this.y); ctx.lineTo(this.x+this.size/2, this.y+this.size/2); ctx.lineTo(this.x, this.y+this.size); ctx.lineTo(this.x-this.size/2, this.y+this.size/2); ctx.lineTo(this.x-this.size, this.y); ctx.lineTo(this.x-this.size/2, this.y-this.size/2); ctx.fill();
+            ctx.strokeStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.lineWidth=3; ctx.stroke();
         } else {
             ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-        } ctx.restore();
+        }
     }
 }
 
-// Entities
-class RectEntity { constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.active=true;} }
-class Gem extends RectEntity { constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} draw(ctx){ if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; ctx.fillStyle="#00ffc8"; ctx.beginPath(); ctx.arc(this.x+10,dy,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10,dy,5,0,Math.PI*2); ctx.fill(); } }
-class ShardDrop extends RectEntity { 
-    constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} 
-    draw(ctx){ 
-        if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; 
-        ctx.fillStyle="#c832ff"; ctx.beginPath(); ctx.moveTo(this.x+10, dy-10); ctx.lineTo(this.x+20, dy); ctx.lineTo(this.x+10, dy+10); ctx.lineTo(this.x, dy); ctx.fill(); 
-        ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10, dy, 3, 0, Math.PI*2); ctx.fill();
-    } 
-}
-class Hazard extends RectEntity { constructor(x,y){super(x,y-30,30,30);} draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.beginPath(); ctx.moveTo(this.x,this.y+30); ctx.lineTo(this.x+30,this.y+30); ctx.lineTo(this.x+15,this.y); ctx.fill(); } }
-class JumpPad extends RectEntity { draw(ctx){ ctx.fillStyle="#32ff64"; ctx.fillRect(this.x,this.y,40,10); } }
-
-// Power-Ups
-class PowerUp extends RectEntity {
-    constructor(x,y,type){ super(x,y,40,40); this.pType=type; this.pulse=rand(0,Math.PI*2); }
-    draw(ctx) {
-        if(!this.active)return; this.pulse+=0.1; let dy=this.y+20+Math.sin(this.pulse)*5; let cx=this.x+20;
-        let c1, c2, emoji;
-        if(this.pType===0){ c1="rgba(255,100,0,0.5)"; c2="#ff0000"; emoji="🚀"; } 
-        else if(this.pType===1){ c1="rgba(0,150,255,0.5)"; c2="#00ffff"; emoji="🧲"; } 
-        else if(this.pType===2){ c1="rgba(50,255,100,0.5)"; c2="#00ff00"; emoji="🛡️"; } 
-        else if(this.pType===3){ c1="rgba(255,215,0,0.5)"; c2="#ffffff"; emoji="👼"; } 
-        else if(this.pType===4){ c1="rgba(128,0,128,0.5)"; c2="#ff00ff"; emoji="🦇"; } 
-        
-        ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(cx, dy, 20, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle=c2; ctx.lineWidth=2; ctx.stroke(); 
-        drawText(emoji, cx, dy+8, 24, "white");
-        ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.arc(cx-8, dy-8, 4, 0, Math.PI*2); ctx.fill(); 
-    }
-}
+class Rect { constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.active=true;} }
+function AABB(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
 
 class Player {
-    constructor() { 
-        this.x=150; this.y=300; this.w=30; this.h=40; this.vy=0; this.gravity=0.65; this.jumpPower=-13; this.onGround=false; this.trail=[]; 
-        this.jetpack=0; this.magnet=0; this.shield=false; this.angel=false; this.demon=0; this.iframes=0;
-        this.updateSkin(); 
-    }
+    constructor() { this.x=150; this.y=300; this.w=30; this.h=40; this.vy=0; this.gravity=0.6; this.jumpPower=-13; this.onGround=false; this.updateSkin(); 
+    this.jetpack=0; this.magnet=0; this.shield=false; this.angel=false; this.demon=0; this.iframes=0; }
     updateSkin(fId=null) {
         if(!saveData) return; let id=fId!==null?fId:saveData.equipped_id; let s=SKINS.find(x=>x.id===id);
         this.skinName=s.name; this.color=s.color; this.rarity=s.rarity;
     }
-    jump(superJump=false) {
-        if(!this.onGround && !superJump) return;
-        this.vy = superJump?-18:this.jumpPower; this.onGround=false;
-        
-        switch(this.skinName) {
-            case "Ocean": for(let i=0;i<8;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [0,150,255], "bubble")); break;
-            case "Forest": for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [50,200,50], "leaf")); break;
-            case "Sakura": for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,180,200], "leaf")); break;
-            case "Sand": for(let i=0;i<15;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [210,180,140], "dust")); break;
-            case "Glacier": for(let i=0;i<15;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,255,255], "snow")); break;
-            case "Neon": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [0,255,255], "dash")); particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,0,255], "dash")); break;
-            case "INFERNO": for(let i=0;i<15;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,100,0], "fire")); break;
-            case "GALAXY": for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [200,100,255], "star")); break;
-            case "DRAGON WARRIOR": for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "fire")); break;
-        }
+    jump() { 
+        if(!this.onGround) return; this.vy = this.jumpPower; this.onGround=false; 
+        for(let i=0;i<5;i++) particles.push(new Particle(this.x+15, this.y+40, [255,255,255]));
     }
     update() {
         let vx = game_speed;
@@ -263,452 +198,180 @@ class Player {
 
         if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
-            if (isPointerDown) {
-                this.vy = -6; 
-                if(frames%2===0) particles.push(new Particle(this.x+15, this.y+20, [150,0,255], "fire"));
-            } else {
-                this.vy += this.gravity * 0.5; 
-            }
+            if (isPointerDown) { this.vy = -5; if(frames%3===0) particles.push(new Particle(this.x+15, this.y+20, [150,0,255], "fly")); } 
+            else { this.vy += this.gravity * 0.4; }
         }
 
         if(this.jetpack>0){ 
-            this.jetpack--; vx=18; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0; 
-            this.magnet = Math.max(this.magnet, 5); 
-            
-            if (this.skinName === "DRAGON WARRIOR") {
-                particles.push(new Particle(this.x+15, this.y+20+Math.sin(frames*0.5)*30, [255,215,0], "dragon"));
-                particles.push(new Particle(this.x+15, this.y+20+Math.sin(frames*0.5+Math.PI)*30, [255,100,0], "dragon"));
-            } else {
-                particles.push(new Particle(this.x, this.y+this.h/2, [255,100,0], "dash")); 
-            }
-            
-            if (this.jetpack === 30) { 
-                let dropX = this.x + (40 * game_speed);
-                platforms.push(new RectEntity(dropX - 100, 450, 1000, 20));
-                last_plat_x = Math.max(last_plat_x, dropX + 900); 
-            }
+            this.jetpack--; vx=18; this.y += (150 - this.y) * 0.1; this.vy = 0; this.magnet = 10;
+            particles.push(new Particle(this.x, this.y+20, this.skinName==="DRAGON WARRIOR"?[255,215,0]:[255,100,0], "fly"));
+            if (this.jetpack === 20) { platforms.push(new Rect(this.x+vx*20, 450, 1000, 20)); last_plat_x = this.x+vx*20+1000; }
             if (this.jetpack < 10) this.vy += this.gravity;
         } else if (this.demon <= 0) {
             this.vy += this.gravity;
         }
 
-        this.x+=vx; 
-        this.y+=this.vy; this.onGround=false; 
-        for(let p of platforms) if(AABB(this,p)){ 
-            if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } 
-        }
+        this.x+=vx; this.y+=this.vy; this.onGround=false; 
+        for(let p of platforms) if(AABB(this,p)){ if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } }
 
-        for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
+        for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.vy=-18; this.onGround=false; p.active=false; }
         
         for(let i of items) if(i.active && AABB(this,i)){ 
             i.active=false;
-            if(i.pType===0) this.jetpack=300; 
-            else if(i.pType===1) this.magnet=600; 
-            else if(i.pType===2) this.shield=true; 
-            else if(i.pType===3) this.angel=true; 
-            else if(i.pType===4) this.demon=600; 
-            for(let k=0;k<30;k++) particles.push(new Particle(this.x+15, this.y+20, [255,255,255])); 
+            if(i.type===0) this.jetpack=200; else if(i.type===1) this.magnet=400; else if(i.type===2) this.shield=true; else if(i.type===3) this.angel=true; else if(i.type===4) this.demon=400; 
         }
 
         if (this.magnet > 0) {
             this.magnet--;
-            if (this.skinName === "DRAGON WARRIOR" && frames%5===0) particles.push(new Particle(this.x+15, this.y+20, [255,215,0], "wave"));
-            let pull = (item) => { let dx=(this.x+15)-(item.x+10); let dy=(this.y+20)-(item.y+10); if(dx*dx+dy*dy < 400000) { item.x+=dx*0.15; item.y+=dy*0.15; } };
-            gems.forEach(pull); collect_shards.forEach(pull);
+            let pull = (item) => { let dx=(this.x+15)-(item.x+10); let dy=(this.y+20)-(item.y+10); if(dx*dx+dy*dy < 250000) { item.x+=dx*0.1; item.y+=dy*0.1; } };
+            gems.forEach(pull); shards.forEach(pull);
         }
 
         let dead = this.y > 650;
         if (this.iframes <= 0 && this.jetpack <= 0) {
             for (let h of hazards) if (h.active && AABB(this, h)) {
-                if (this.shield) {
-                    this.shield = false; h.active = false; this.iframes = 60;
-                    for(let k=0;k<30;k++) particles.push(new Particle(this.x+15, this.y+20, [50,255,100], "star")); 
-                } else dead = true;
+                if (this.shield) { this.shield = false; h.active = false; this.iframes = 60; } else dead = true;
             }
         }
 
         if (dead) {
             if (this.angel) {
                 this.angel = false; this.y = 100; this.vy = -10; this.iframes = 120; dead = false;
-                for(let k=0;k<50;k++) particles.push(new Particle(this.x+15, this.y+20, [255,215,0], "star")); 
-                let dropX = this.x + (40 * game_speed);
-                platforms.push(new RectEntity(dropX - 100, 450, 800, 20));
-                last_plat_x = Math.max(last_plat_x, dropX + 700); 
+                platforms.push(new Rect(this.x, 450, 800, 20)); last_plat_x = Math.max(last_plat_x, this.x + 800); 
             } else {
                 state = "GAMEOVER";
                 if (distance > saveData.high_score) { saveData.high_score = distance; syncToCloud(); }
             }
         }
-
-        this.trail.push({x:this.x+this.w/2, y:this.y+this.h/2}); if(this.trail.length>12) this.trail.shift();
-        
-        if(this.onGround && Math.random()<0.3 && this.jetpack<=0){ 
-            let c=this.skinName==="Sand"?[210,180,140]:this.skinName==="Forest"?[50,200,50]:this.skinName==="Ash"?[80,80,80]:[150,150,150]; 
-            particles.push(new Particle(this.x, this.y+this.h, c, "dust")); 
-        }
-        if (this.skinName === "DRAGON WARRIOR") {
-            let oX = Math.cos(frames*0.1)*30; let oY = Math.sin(frames*0.1)*30;
-            particles.push(new Particle(this.x+15+oX, this.y+20+oY, [255,215,0], "normal"));
-        } else if (this.skinName === "INFERNO" && Math.random() < 0.4) particles.push(new Particle(this.x+15+rand(-10,10), this.y+this.h-rand(0,20), [255,50,0], "fire"));
     }
     
     draw(ctx) {
         if (this.iframes > 0 && frames % 4 < 2) return; 
-        let cx=this.x+this.w/2;
-
+        let cx=this.x+15; let cy=this.y+20;
+        
         if (this.demon > 0) {
-            ctx.fillStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#ff00ff";
-            ctx.beginPath(); ctx.moveTo(cx, this.y+10); ctx.lineTo(cx-40, this.y-20+Math.sin(frames*0.3)*20); ctx.lineTo(cx-10, this.y+30); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(cx, this.y+10); ctx.lineTo(cx+40, this.y-20+Math.sin(frames*0.3)*20); ctx.lineTo(cx+10, this.y+30); ctx.fill();
+            ctx.fillStyle = "#ff00ff"; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx-40, cy-10+Math.sin(frames*0.3)*10); ctx.lineTo(cx-10, cy+10); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+40, cy-10+Math.sin(frames*0.3)*10); ctx.lineTo(cx+10, cy+10); ctx.fill();
         }
 
-        if(this.rarity === "Epic" || this.rarity === "Legendary"){
-            for(let i=0;i<this.trail.length;i++){
-                let t=this.trail[i]; let s=12*(i/this.trail.length); let p = i/this.trail.length;
-                let col = this.skinName==="GALAXY"?`rgba(200,0,255,${p})`:this.skinName==="ABYSSAL"?`rgba(0,255,255,${p})`:this.skinName==="CHRONO"||this.skinName==="DRAGON WARRIOR"?`rgba(255,215,0,${p})`:this.skinName==="Neon"?(i%2===0?`rgba(0,255,255,${p})`:`rgba(255,0,255,${p})`):`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${p})`;
-                ctx.fillStyle=col; ctx.beginPath(); ctx.arc(t.x, t.y, s, 0, Math.PI*2); ctx.fill();
-            }
-        }
-
-        if(this.jetpack>0){ 
-            if (this.skinName==="DRAGON WARRIOR") {
-                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(cx+20, this.y+10); ctx.lineTo(cx+45, this.y+20); ctx.lineTo(cx+20, this.y+30); ctx.fill();
-            } else {
-                ctx.strokeStyle="#ff6400"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 35, 0, Math.PI*2); ctx.stroke(); 
-            }
-        }
+        ctx.fillStyle=`rgb(${this.color[0]},${this.color[1]},${this.color[2]})`;
+        ctx.fillRect(this.x, this.y, this.w, this.h);
         
-        if (this.rarity === "Epic" || this.rarity === "Legendary") {
-            let acolor = this.skinName==="GALAXY"?[100,0,200]:this.skinName==="ABYSSAL"?[0,150,150]:this.skinName==="CHRONO"||this.skinName==="DRAGON WARRIOR"?[200,180,50]:this.skinName==="Void"?[50,0,100]:this.color;
-            let intensity = this.rarity==="Epic" ? 15 : 30; let glow = Math.abs(Math.sin(Date.now()/150)) * (this.rarity==="Epic"?20:40);
-            let rad = intensity + (glow/5);
-            let grad = ctx.createRadialGradient(cx, this.y+this.h/2, 0, cx, this.y+this.h/2, rad);
-            grad.addColorStop(0, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0.8)`);
-            grad.addColorStop(1, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0)`);
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, rad, 0, Math.PI*2); ctx.fill();
-        }
+        if (this.rarity === "Legendary") { ctx.strokeStyle="#ffd700"; ctx.lineWidth=2; ctx.strokeRect(this.x, this.y, this.w, this.h); }
+        else if (this.rarity === "Epic") { ctx.strokeStyle="#ff3232"; ctx.lineWidth=2; ctx.strokeRect(this.x, this.y, this.w, this.h); }
 
-        ctx.beginPath(); ctx.moveTo(cx, this.y+15); ctx.lineTo(cx-16, this.y+this.h-8); ctx.lineTo(cx+16, this.y+this.h-8); ctx.closePath();
-        ctx.save(); ctx.clip();
-
-        if (this.skinName === "Phantom") ctx.globalAlpha = 0.6;
-        ctx.fillStyle=`rgb(${this.color[0]},${this.color[1]},${this.color[2]})`; ctx.fill();
-
-        if (this.rarity === "Legendary") {
-            if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
-                ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
-            } else if (this.skinName === "GALAXY") {
-                let yOff = (frames * 0.5) % 20; ctx.fillStyle = "white";
-                ctx.fillRect(cx-5, this.y+10+yOff, 2, 2); ctx.fillRect(cx+8, this.y+20+yOff, 2, 2); ctx.fillRect(cx-10, this.y+30+yOff, 2, 2);
-                ctx.fillRect(cx-5, this.y-10+yOff, 2, 2); ctx.fillRect(cx+8, this.y+yOff, 2, 2); ctx.fillRect(cx-10, this.y+10+yOff, 2, 2);
-            } else if (this.skinName === "CHRONO") {
-                let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
-                ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
-            } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
-            }
-        }
-        ctx.restore(); 
-        ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
-
-        ctx.fillStyle="#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
-        
-        let eCol = (this.skinName==="INFERNO"||this.skinName==="DRAGON WARRIOR")?"#ff6400":this.skinName==="ABYSSAL"?"#00ffff":this.skinName==="Void"?"#ff00ff":"#141419";
-        ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); 
-
-        if (this.shield) {
-            ctx.strokeStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#32ff64";
-            ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 40+Math.sin(frames*0.1)*5, 0, Math.PI*2); ctx.stroke(); 
-        }
-        if (this.angel) {
-            ctx.strokeStyle = "#ffd700"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(cx, this.y-10+Math.sin(frames*0.1)*5, 15, 5, 0, 0, Math.PI*2); ctx.stroke();
-        }
+        if (this.shield) { ctx.strokeStyle = "#32ff64"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, cy, 35, 0, Math.PI*2); ctx.stroke(); }
+        if (this.angel) { ctx.strokeStyle = "#ffd700"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(cx, this.y-10, 15, 5, 0, 0, Math.PI*2); ctx.stroke(); }
     }
 }
 
-function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
-    ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
-    let bottom = 20, top = -20;
-    if (!isUnlocked) {
-        ctx.fillStyle = "#1a1a24"; ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.fill();
-        ctx.fillStyle = "#202030"; ctx.beginPath(); ctx.ellipse(0, top+10, 12, 10, 0, 0, Math.PI*2); ctx.fill();
-        drawText("?", 0, top+16, 20, "#505064"); drawText("LOCKED", 0, bottom+15, 12, "#505064"); ctx.restore(); return;
-    }
-    let c = skin.color;
-    
-    if (skin.rarity === "Legendary" || skin.rarity === "Epic") {
-        let grad = ctx.createRadialGradient(0, 0, 0, 0, 35);
-        grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]}, ${skin.rarity==="Legendary"?0.5:0.2})`);
-        grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]}, 0)`);
-        ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill();
-    }
-    
-    ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.closePath(); ctx.save(); ctx.clip();
-    if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
-    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill();
-    
-    if (skin.rarity === "Legendary") {
-        if (skin.name === "INFERNO" || skin.name === "DRAGON WARRIOR") {
-            let yOff = (frames * 2) % 20; ctx.fillStyle = skin.name==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
-            ctx.beginPath(); ctx.moveTo(-10, top+30-yOff); ctx.lineTo(0, top+15-yOff); ctx.lineTo(10, top+30-yOff); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(-15, top+40-yOff); ctx.lineTo(-5, top+25-yOff); ctx.lineTo(5, top+40-yOff); ctx.fill();
-        } else if (skin.name === "GALAXY") {
-            let yOff = (frames * 0.5) % 20; ctx.fillStyle = "white";
-            ctx.fillRect(-5, top+10+yOff, 2, 2); ctx.fillRect(8, top+20+yOff, 2, 2); ctx.fillRect(-10, top+30+yOff, 2, 2);
-            ctx.fillRect(-5, top-10+yOff, 2, 2); ctx.fillRect(8, top+yOff, 2, 2); ctx.fillRect(-10, top+10+yOff, 2, 2);
-        } else if (skin.name === "CHRONO") {
-            let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
-            ctx.fillRect(-20, top+10+yOff, 40, 3); ctx.fillRect(-20, top+25+yOff, 40, 3); ctx.fillRect(-20, top-5+yOff, 40, 3);
-        } else if (skin.name === "ABYSSAL") {
-            if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(-20, top+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(-20, top+25+rand(-5,5), 40, 2); }
-        }
-    }
-    ctx.restore(); ctx.strokeStyle = "#141419"; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = "#f5f5fa"; ctx.beginPath(); ctx.ellipse(0, top+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-8, top+14); ctx.lineTo(-12, top+4); ctx.lineTo(-4, top+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(8, top+14); ctx.lineTo(12, top+4); ctx.lineTo(4, top+10); ctx.fill();
-    ctx.fillStyle = (skin.name==="INFERNO"||skin.name==="DRAGON WARRIOR")?"#ff6400":skin.name==="ABYSSAL"?"#00ffff":skin.name==="Void"?"#ff00ff":"#141419";
-    ctx.beginPath(); ctx.ellipse(-3, top+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(3, top+12, 2, 4, 0, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-}
-
-function drawBackground() {
-    let cycle = (distance % 5000) / 5000; 
-    let rTop, gTop, bTop, rBot, gBot, bBot;
-    if (cycle < 0.25) { 
-        rTop = 10+(cycle*4*40); gTop = 10+(cycle*4*20); bTop = 30-(cycle*4*10); rBot = 20+(cycle*4*100); gBot = 20+(cycle*4*40); bBot = 40+(cycle*4*10);
-    } else if (cycle < 0.5) { 
-        let p = (cycle-0.25)*4; rTop = 50-(p*30); gTop = 30+(p*100); bTop = 20+(p*200); rBot = 120-(p*50); gBot = 60+(p*100); bBot = 50+(p*200);
-    } else if (cycle < 0.75) { 
-        let p = (cycle-0.5)*4; rTop = 20+(p*80); gTop = 130-(p*80); bTop = 220-(p*180); rBot = 70+(p*150); gBot = 160-(p*100); bBot = 250-(p*200);
-    } else { 
-        let p = (cycle-0.75)*4; rTop = 100-(p*90); gTop = 50-(p*40); bTop = 40-(p*10); rBot = 220-(p*200); gBot = 60-(p*40); bBot = 50-(p*10);
-    }
-    let grad = ctx.createLinearGradient(0,0,0,600); grad.addColorStop(0, `rgb(${rTop},${gTop},${bTop})`); grad.addColorStop(1, `rgb(${rBot},${gBot},${bBot})`);
-    ctx.fillStyle = grad; ctx.fillRect(0,0,900,600);
-
-    ctx.fillStyle = "#1a1a24"; ctx.beginPath();
-    for(let i=0; i<15; i++) { let px = (i*180) - ((camera_x*0.1) % 180); ctx.lineTo(px, 350 - Math.sin(i*99)*120); }
-    ctx.lineTo(900, 600); ctx.lineTo(0, 600); ctx.fill();
-
-    for(let b of bg_buildings) {
-        let drawX = b.x - (camera_x * 0.3);
-        if (drawX > -100 && drawX < 1000) {
-            ctx.fillStyle = "#101018"; ctx.fillRect(drawX, b.y, b.w, 600-b.y);
-            if (b.w > 40) { ctx.fillStyle = "#00ffc8"; ctx.fillRect(drawX+10, b.y+20, 5, 10); ctx.fillStyle = "#ff00ff"; ctx.fillRect(drawX+25, b.y+50, 5, 10); }
-        }
-    }
-    
-    for(let b of bg_props) {
-        let drawX = b.x - (camera_x * 0.6);
-        if (drawX > -100 && drawX < 1000) {
-            if (b.type === "tree") {
-                ctx.fillStyle = "#142814"; ctx.fillRect(drawX, b.y-100, 20, 100);
-                ctx.fillStyle = "#0f3c0f"; ctx.beginPath(); ctx.moveTo(drawX+10, b.y-140); ctx.lineTo(drawX-20, b.y-60); ctx.lineTo(drawX+40, b.y-60); ctx.fill();
-            } else {
-                ctx.fillStyle = "#141419"; ctx.fillRect(drawX, b.y-150, 60, 150);
-                ctx.fillStyle = "#00ffc8"; ctx.fillRect(drawX+10, b.y-140, 10, 20); ctx.fillRect(drawX+40, b.y-100, 10, 20);
-            }
-        }
-    }
-}
-
+// Clean Generator
 function generateChunk(lX, lY) {
-    let cX=lX; let cY=lY; let np=Math.floor(rand(5,8));
-    for(let i=0;i<np;i++){
-        let gap = rand(90, 170); 
-        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-60,60))); let pW=rand(200,500); 
-        platforms.push(new RectEntity(cX, cY, pW, 20));
+    let cX=lX; let cY=lY;
+    for(let i=0;i<5;i++){
+        cX+=Math.random()*80 + 100; cY=Math.max(200, Math.min(500, cY+(Math.random()-0.5)*120)); let pW=Math.random()*300+300; 
+        platforms.push(new Rect(cX, cY, pW, 20));
 
-        if(Math.random()<0.35){
-            let aY=Math.max(100, cY-rand(120,150)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
-            pads.push(new JumpPad(cX+20, cY));
+        if(Math.random()<0.3){
+            let aY=cY-130; platforms.push(new Rect(cX+50, aY, pW-50, 20));
+            pads.push(new Rect(cX+20, cY-10, 40, 10));
         }
-
-        bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
-        if(Math.random()<0.4) bg_buildings.push({x: cX*0.5 + rand(0,300), y: rand(200, 350), w: rand(40, 80)}); 
 
         let r=Math.random(); 
-        if(r<0.12) items.push(new PowerUp(cX+pW/2, cY-70, Math.floor(rand(0, 5)))); 
-        else if(r<0.25) hazards.push(new Hazard(cX+pW/2, cY)); 
-        else if(r<0.65) for(let j=0;j<Math.floor(rand(1,5));j++) gems.push(new Gem(cX+pW/2+(j*30), cY-35));
-        else if(r<0.80) collect_shards.push(new ShardDrop(cX+pW/2, cY-40)); 
-        
+        if(r<0.1) items.push({x:cX+pW/2, y:cY-60, w:30, h:30, type:Math.floor(Math.random()*5), active:true}); 
+        else if(r<0.3) hazards.push(new Rect(cX+pW/2, cY-30, 30, 30)); 
+        else if(r<0.6) for(let j=0;j<3;j++) gems.push(new Rect(cX+pW/2+(j*40), cY-30, 20, 20));
+        else if(r<0.7) shards.push(new Rect(cX+pW/2, cY-40, 20, 20)); 
         cX+=pW;
     }
     last_plat_x=cX; last_plat_y=cY;
 }
 
-let dramaType = "none"; 
-function rollGacha() {
-    let r = Math.random(); let pool = [];
-    if (r > 0.99) { pool = SKINS.filter(s => s.rarity === "Legendary"); dramaType = "ascension"; }
-    else if (r > 0.91) { pool = SKINS.filter(s => s.rarity === "Epic"); dramaType = Math.random() > 0.5 ? "heartbreaker" : "none"; }
-    else if (r > 0.60) { pool = SKINS.filter(s => s.rarity === "Rare"); dramaType = "none"; }
-    else { pool = SKINS.filter(s => s.rarity === "Common"); dramaType = "none"; }
-    return pool[Math.floor(Math.random() * pool.length)];
-}
-
 const player = new Player(); const preview = new Player();
 
+// --- Fast Input Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
     if (state === "MENU") {
-        if (showBanner) { 
-            // TAP ANYWHERE TO CLOSE BANNER!
-            showBanner=false; return; 
-        } 
-        if (isBtn(mx, my, 350, 180, 200, 70) || mx === -1) { 
+        if (isBtn(mx, my, 350, 220, 200, 60) || mx === -1) { 
             state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[]; player.shield=false; player.angel=false; player.magnet=0; player.demon=0;
-            platforms=[new RectEntity(0,400,1200,20)]; gems=[]; items=[]; collect_shards=[]; hazards=[]; pads=[]; bg_props=[]; bg_buildings=[];
-            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
+            platforms=[new Rect(0,400,1200,20)]; gems=[]; items=[]; shards=[]; hazards=[]; pads=[];
+            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=6; 
         }
-        else if (isBtn(mx, my, 350, 260, 95, 60)) state = "VAULT";
-        else if (isBtn(mx, my, 455, 260, 95, 60)) state = "GACHA_MENU";
-        else if (isBtn(mx, my, 350, 330, 200, 50)) { state = "SHARD_MENU"; shard_sel = 0; }
+        else if (isBtn(mx, my, 350, 300, 95, 50)) state = "VAULT";
+        else if (isBtn(mx, my, 455, 300, 95, 50)) state = "GACHA_MENU";
+        else if (isBtn(mx, my, 350, 370, 200, 50)) { state = "SHARD_MENU"; shard_sel = 0; }
     } 
-    else if (state === "PLAYING") {
-        player.jump(); 
-    }
+    else if (state === "PLAYING") { player.jump(); }
     else if (state === "GAMEOVER") {
-        if (isBtn(mx, my, 250, 420, 180, 60) || mx === -1) { 
-            state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[]; player.shield=false; player.angel=false; player.magnet=0; player.demon=0;
-            platforms=[new RectEntity(0,400,1200,20)]; gems=[]; items=[]; collect_shards=[]; hazards=[]; pads=[]; bg_props=[]; bg_buildings=[];
-            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
+        if (isBtn(mx, my, 250, 400, 180, 60) || mx === -1) { 
+            state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.shield=false; player.angel=false; player.magnet=0; player.demon=0;
+            platforms=[new Rect(0,400,1200,20)]; gems=[]; items=[]; shards=[]; hazards=[]; pads=[];
+            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=6; 
         }
-        else if (isBtn(mx, my, 470, 420, 180, 60)) { state = "MENU"; fetchLeaderboard(); }
+        else if (isBtn(mx, my, 470, 400, 180, 60)) { state = "MENU"; fetchLeaderboard(); }
     }
     else if (state === "VAULT") {
         if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; 
-        let c = 5; let startX = 50; let startY = 120;
-        for (let i = 0; i < SKINS.length; i++) {
-            let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
-            if (isBtn(mx, my, x, y, 70, 80)) vault_sel = i;
-        }
-        if (isBtn(mx, my, 550, 450, 250, 50)) {
-            if (saveData.unlocked.includes(SKINS[vault_sel].id) && saveData.equipped_id !== SKINS[vault_sel].id) {
-                saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
-            }
+        for (let i=0; i<SKINS.length; i++) if (isBtn(mx, my, 50+(i%5)*80, 120+Math.floor(i/5)*90, 70, 80)) vault_sel = i;
+        if (isBtn(mx, my, 550, 450, 250, 50) && saveData.unlocked.includes(SKINS[vault_sel].id)) {
+            saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
         }
     }
     else if (state === "GACHA_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
+        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU";
         else if (isBtn(mx, my, 350, 350, 200, 60) || mx === -1) {
             if (saveData.gems >= GACHA_COST) {
                 saveData.gems -= GACHA_COST; syncToCloud(); 
-                gacha_target = rollGacha();
-                preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
-                state = "GACHA_ANIM"; gacha_timer = 240; gacha_return_state = "GACHA_MENU";
+                let r=Math.random(); let p=[];
+                if(r>0.99)p=SKINS.filter(s=>s.rarity==="Legendary"); else if(r>0.91)p=SKINS.filter(s=>s.rarity==="Epic"); else if(r>0.6)p=SKINS.filter(s=>s.rarity==="Rare"); else p=SKINS.filter(s=>s.rarity==="Common");
+                gacha_target = p[Math.floor(Math.random()*p.length)];
+                preview.updateSkin(gacha_target.id); state = "GACHA_ANIM"; gacha_timer = 180; gacha_return = "GACHA_MENU";
             }
         }
     }
-    else if (state === "GACHA_RESULT") {
-        if (isBtn(mx, my, 350, 500, 200, 50) || mx === -1) {
-            state = gacha_return_state; 
-            if (state === "MENU") fetchLeaderboard();
-        }
-    }
     else if (state === "SHARD_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
+        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU";
         else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
         else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
         else if (isBtn(mx, my, 350, 450, 200, 60) || mx === -1) {
             let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
             if (saveData.shards >= cost) {
-                let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
-                if (missing.length > 0) {
+                let m = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
+                if (m.length > 0) {
                     saveData.shards -= cost; syncToCloud();
-                    gacha_target = missing[Math.floor(Math.random() * missing.length)];
-                    preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
-                    state = "GACHA_ANIM"; gacha_timer = 240; gacha_return_state = "SHARD_MENU"; dramaType = "none";
-                } else alert(`You already own all ${r} skins!`);
-            } else alert(`Not enough Shards! You need ${cost}.`);
+                    gacha_target = m[Math.floor(Math.random() * m.length)];
+                    preview.updateSkin(gacha_target.id); state = "GACHA_ANIM"; gacha_timer = 180; gacha_return = "SHARD_MENU";
+                } else alert(`You own all ${r} skins!`);
+            } else alert(`Need ${cost} Shards!`);
         }
     }
-}
-
-function getGachaColor(pct, drama, rarity) {
-    let grey = [150,150,150], cyan = [0,255,255], red = [255,50,50], gold = [255,215,0];
-    
-    if (drama === "heartbreaker") {
-        if(pct < 0.2) return grey;
-        if(pct < 0.4) return lerpColor(grey, cyan, (pct-0.2)/0.2);
-        if(pct < 0.6) return cyan;
-        if(pct < 0.8) return lerpColor(cyan, red, (pct-0.6)/0.2);
-        if(pct < 0.9) return red;
-        if(pct < 0.95) return gold; 
-        return red; 
+    else if (state === "GACHA_RESULT") {
+        if (isBtn(mx, my, 350, 500, 200, 50) || mx === -1) { state = gacha_return; if(state==="MENU") fetchLeaderboard(); }
     }
-    
-    let rLevel = rarity === "Common" ? 1 : rarity === "Rare" ? 2 : rarity === "Epic" ? 3 : 4;
-    let targets = [grey];
-    if (drama === "ascension" || rLevel >= 2) targets.push(cyan);
-    if (drama === "ascension" || rLevel >= 3) targets.push(red);
-    if (drama === "ascension" || rLevel >= 4) targets.push(gold);
-    
-    let segments = targets.length - 1;
-    if (segments === 0) return grey;
-    
-    let segPct = pct * segments;
-    let idx = Math.floor(segPct);
-    if (idx >= segments) return targets[segments];
-    return lerpColor(targets[idx], targets[idx+1], segPct - idx);
 }
 
 function update() {
     frames++; if (state === "LOGIN") return; 
     
     if (state === "PLAYING") {
-        player.update(); game_speed += 0.001; 
-        
+        player.update(); game_speed += 0.002; 
         if (camera_x + 1800 > last_plat_x) generateChunk(last_plat_x, last_plat_y);
 
-        platforms=platforms.filter(p=>p.x+p.w>camera_x-100); gems=gems.filter(g=>g.x+g.w>camera_x-100); collect_shards=collect_shards.filter(s=>s.x+s.w>camera_x-100);
-        hazards=hazards.filter(h=>h.x+h.w>camera_x-100); pads=pads.filter(p=>p.x+p.w>camera_x-100); items=items.filter(i=>i.x+i.w>camera_x-100);
-        bg_props=bg_props.filter(b=>b.x>camera_x-100); bg_buildings=bg_buildings.filter(b=>b.x>camera_x-300);
+        platforms=platforms.filter(p=>p.x+p.w>camera_x-100); gems=gems.filter(g=>g.x>camera_x-100); shards=shards.filter(s=>s.x>camera_x-100);
+        hazards=hazards.filter(h=>h.x>camera_x-100); pads=pads.filter(p=>p.x>camera_x-100); items=items.filter(i=>i.x>camera_x-100);
 
-        let target_cam = player.x - 200; 
-        camera_x += (target_cam - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
+        camera_x += (player.x - 200 - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
         distance = Math.max(distance, Math.floor(player.x / 10));
 
     } else if (state === "GACHA_ANIM") {
         gacha_timer--;
-        let pct = 1 - (gacha_timer / 240); 
-        let col = getGachaColor(pct, dramaType, gacha_target.rarity);
-
-        if (frames % 4 === 0) {
-            if (col[0] > 200 && col[1] > 200) { 
-                particles.push(new Particle(450+rand(-50,50), 300+rand(-50,50), col, "star"));
-                particles.push(new Particle(450, 300, col, "wave")); 
-            } else if (col[0] > 200 && col[1] < 100) { 
-                particles.push(new Particle(450+rand(-30,30), 300+rand(-30,30), col, "normal"));
-            }
-        }
-
         if (gacha_timer <= 0) {
-            for(let i=0;i<60;i++) particles.push(new Particle(450, 300, col));
-            if (gacha_target.rarity === "Legendary") {
-                for(let i=0;i<30;i++) particles.push(new Particle(450, 300, col, "star"));
-                for(let i=0;i<5;i++) particles.push(new Particle(450, 300, col, "wave"));
-            } else if (gacha_target.rarity === "Epic") {
-                for(let i=0;i<3;i++) particles.push(new Particle(450, 300, col, "wave"));
-            }
-
             if (saveData.unlocked.includes(gacha_target.id)) {
                 gacha_msg="DUPLICATE"; shard_reward=gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
             } else { gacha_msg="NEW SKIN!"; saveData.unlocked.push(gacha_target.id); }
             syncToCloud(); state = "GACHA_RESULT";
-        }
-    } else if (state === "MENU" || state === "GACHA_RESULT" || state === "VAULT") {
-        if (frames % 20 === 0 && (player.skinName==="INFERNO" || player.skinName==="DRAGON WARRIOR")) {
-            let col = player.skinName==="INFERNO"?[255,50,0]:[255,215,0];
-            particles.push(new Particle(player.x+15+rand(-10,10), player.y+40, col, "fire"));
         }
     }
     particles.forEach(p=>p.update()); particles=particles.filter(p=>p.life>0);
@@ -716,138 +379,91 @@ function update() {
 
 function draw() {
     if (state === "LOGIN") return; 
-    ctx.fillStyle = "#0f0f19"; ctx.fillRect(0, 0, 900, 600); 
+    ctx.fillStyle = "#08080c"; ctx.fillRect(0, 0, 900, 600); 
 
     if (state === "PLAYING" || state === "GAMEOVER") {
-        drawBackground();
         ctx.save(); ctx.translate(-camera_x, 0);
         
-        ctx.fillStyle="#202030"; ctx.strokeStyle="#00ffc8"; ctx.lineWidth=2;
-        for (let p of platforms) { 
-            ctx.fillRect(p.x, p.y, p.w, p.h); 
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+p.w, p.y); ctx.stroke(); 
-        }
-        for(let p of pads) p.draw(ctx); for(let h of hazards) h.draw(ctx); for(let i of items) i.draw(ctx); for(let g of gems) g.draw(ctx); for(let s of collect_shards) s.draw(ctx); for(let p of particles) p.draw(ctx);
-        player.draw(ctx); ctx.restore();
+        ctx.fillStyle="#1a1a24"; platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+        
+        pads.forEach(p => { if(p.active){ ctx.fillStyle="#32ff64"; ctx.fillRect(p.x,p.y,p.w,p.h); }});
+        hazards.forEach(h => { if(h.active){ ctx.fillStyle="#ff3232"; ctx.beginPath(); ctx.moveTo(h.x,h.y+h.h); ctx.lineTo(h.x+h.w,h.y+h.h); ctx.lineTo(h.x+h.w/2,h.y); ctx.fill(); }});
+        gems.forEach(g => { if(g.active){ ctx.fillStyle="#00ffc8"; ctx.fillRect(g.x, g.y+Math.sin(frames*0.1)*5, 15, 15); }});
+        shards.forEach(s => { if(s.active){ ctx.fillStyle="#c832ff"; ctx.fillRect(s.x, s.y+Math.sin(frames*0.1)*5, 15, 15); }});
+        
+        items.forEach(i => {
+            if(i.active) {
+                let col = i.type===0?"#ff6400":i.type===1?"#0096ff":i.type===2?"#32ff64":i.type===3?"#ffd700":"#ff00ff";
+                let em = i.type===0?"🚀":i.type===1?"🧲":i.type===2?"🛡️":i.type===3?"👼":"🦇";
+                ctx.fillStyle=col; ctx.beginPath(); ctx.arc(i.x+15, i.y+15+Math.sin(frames*0.1)*5, 18, 0, Math.PI*2); ctx.fill();
+                drawText(em, i.x+15, i.y+22+Math.sin(frames*0.1)*5, 20, "white");
+            }
+        });
 
-        drawText(`GEMS: ${saveData.gems}`, 20, 40, 24, "#00ffc8", "left"); drawText(`SHARDS: ${saveData.shards}`, 20, 70, 20, "#c832ff", "left");
+        particles.forEach(p=>p.draw(ctx)); player.draw(ctx); ctx.restore();
+
+        drawText(`GEMS: ${saveData.gems}`, 20, 40, 20, "#00ffc8", "left"); drawText(`SHARDS: ${saveData.shards}`, 20, 70, 20, "#c832ff", "left");
         drawText(`DISTANCE: ${distance}m`, 880, 40, 24, "white", "right");
 
         if (state === "GAMEOVER") {
             ctx.fillStyle="rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
-            drawText("ELIMINATED", 450, 200, 54, "#ff3232"); drawText(`Final Distance: ${distance}m`, 450, 270, 28, "white"); drawText(`High Score: ${saveData.high_score}m`, 450, 310, 28, "#ffd700");
-            
-            drawButton(250, 420, 180, 60, "RESTART", "#0096ff", "#00ffc8", "black");
-            drawButton(470, 420, 180, 60, "MENU", "#800080", "#c832ff", "white");
+            drawText("ELIMINATED", 450, 200, 54, "#ff3232"); drawText(`Final Distance: ${distance}m`, 450, 260, 24, "white");
+            drawButton(250, 400, 180, 60, "RESTART", "#202030", "#00ffc8", "white");
+            drawButton(470, 400, 180, 60, "MENU", "#202030", "#c832ff", "white");
         }
     } else if (state === "VAULT") {
-        ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600); for(let p of particles) p.draw(ctx); 
-        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16);
-        drawText("SKIN VAULT", 450, 60, 40, "#ffd700");
-        let pct = Math.floor((saveData.unlocked.length / SKINS.length) * 100); drawText(`Completion: ${pct}%`, 450, 90, 16, "#aaaaaa");
-
-        let c = 5; let startX = 50; let startY = 120;
+        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16); drawText("SKIN VAULT", 450, 60, 40, "#ffd700");
         for (let i = 0; i < SKINS.length; i++) {
-            let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
-            ctx.fillStyle = vault_sel===i ? "rgba(0,255,200,0.2)" : "rgba(30, 30, 40, 0.5)"; 
+            let x = 50 + (i % 5) * 80; let y = 120 + Math.floor(i / 5) * 90;
+            ctx.fillStyle = vault_sel===i ? "rgba(0,255,200,0.2)" : "#141419"; 
             ctx.strokeStyle = saveData.equipped_id === SKINS[i].id ? "#00ffc8" : vault_sel===i ? "white" : "#202030"; ctx.lineWidth = 2;
             ctx.fillRect(x, y, 70, 80); ctx.strokeRect(x, y, 70, 80);
-            drawStaticSkin(ctx, x+35, y+35, SKINS[i], saveData.unlocked.includes(SKINS[i].id), 0.8);
+            if (saveData.unlocked.includes(SKINS[i].id)) { ctx.fillStyle=`rgb(${SKINS[i].color})`; ctx.fillRect(x+20, y+20, 30, 40); } else drawText("?", x+35, y+50, 24, "#505064");
         }
-
         let s = SKINS[vault_sel]; let isUnl = saveData.unlocked.includes(s.id);
-        ctx.fillStyle = "rgba(20,20,30,0.8)"; ctx.fillRect(500, 120, 350, 400); ctx.strokeStyle="#505064"; ctx.strokeRect(500, 120, 350, 400);
-        drawText(isUnl ? s.name : "???", 675, 170, 36, isUnl ? RARITY_COLORS[s.rarity] : "#505064");
-        drawText(isUnl ? s.rarity.toUpperCase() : "LOCKED", 675, 200, 20, isUnl ? RARITY_COLORS[s.rarity] : "#505064");
-        
-        drawStaticSkin(ctx, 675, 320, s, isUnl, 2.5);
-
-        if (isUnl) {
-            if (saveData.equipped_id === s.id) drawButton(550, 450, 250, 50, "IN USE", "#404040", "#505050", "#aaaaaa");
-            else drawButton(550, 450, 250, 50, "EQUIP SKIN", "#0096ff", "#00ffc8", "black");
-        } else {
-            drawButton(550, 450, 250, 50, "LOCKED", "#202020", "#303030", "#505050");
-        }
+        ctx.fillStyle = "#101014"; ctx.fillRect(500, 120, 350, 400); ctx.strokeStyle="#303040"; ctx.strokeRect(500, 120, 350, 400);
+        drawText(isUnl ? s.name : "???", 675, 180, 36, isUnl ? RARITY_COLORS[s.rarity] : "#505064"); drawText(isUnl ? s.rarity : "LOCKED", 675, 210, 20, isUnl ? RARITY_COLORS[s.rarity] : "#505064");
+        if (isUnl) { ctx.fillStyle=`rgb(${s.color})`; ctx.fillRect(630, 260, 90, 120); }
+        if (isUnl) drawButton(550, 430, 250, 50, saveData.equipped_id===s.id?"IN USE":"EQUIP", "#202030", saveData.equipped_id===s.id?"#505050":"#00ffc8", "white");
+        else drawButton(550, 430, 250, 50, "LOCKED", "#101010", "#303030", "#505050");
 
     } else if (state === "MENU") {
-        ctx.fillStyle = "#050508"; ctx.fillRect(0,0,900,600);
-        for (let p of particles) p.draw(ctx);
-        player.x = 180; player.y = 350; player.draw(ctx); 
-
-        drawText("CRYSTAL JUMPER", 450, 100, 54, "#c8c8ff");
-        drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
+        drawText("CRYSTAL JUMPER", 450, 100, 54, "#c8c8ff"); drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
         
-        drawButton(350, 180, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
-        drawButton(350, 260, 95, 60, "VAULT", "#800080", "#c832ff", "white", 16);
-        drawButton(455, 260, 95, 60, "GACHA", "#808000", "#ffd700", "black", 16);
-        drawButton(350, 330, 200, 50, "SHARD SHOP", "#640000", "#ff3232", "white", 18);
+        drawButton(350, 220, 200, 60, "▶ PLAY", "#0096ff", "#00ffc8", "black", 24);
+        drawButton(350, 300, 95, 50, "VAULT", "#202030", "#c832ff", "white", 16);
+        drawButton(455, 300, 95, 50, "GACHA", "#202030", "#ffd700", "white", 16);
+        drawButton(350, 370, 200, 50, "SHARD SHOP", "#202030", "#ff3232", "white", 18);
 
-        drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 500, 20, "#00ffc8");
+        drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 500, 18, "#00ffc8");
 
-        ctx.fillStyle = "rgba(15, 15, 20, 0.8)"; ctx.strokeStyle = "#505064"; ctx.fillRect(660, 200, 210, 250); ctx.strokeRect(660, 200, 210, 250);
+        ctx.fillStyle = "#101014"; ctx.fillRect(660, 200, 210, 250); ctx.strokeStyle="#303040"; ctx.strokeRect(660, 200, 210, 250);
         drawText("LEADERBOARD", 765, 230, 16, "#ffd700");
-        if (leaderboardData.length === 0) drawText("Loading...", 765, 300, 14, "#aaaaaa");
-        else {
-            for(let i=0; i<leaderboardData.length; i++) {
-                let f = leaderboardData[i]; let col = f.name === currentPlayerId ? "#00ffc8" : "white";
-                drawText(`${i+1}.${f.name}`, 680, 270 + (i*35), 14, col, "left"); drawText(`${f.score}m`, 850, 270 + (i*35), 14, col, "right");
-            }
-        }
-
-        if (showBanner) {
-            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
-            drawText("🔥 NEW SKIN ALERT 🔥", 450, 150, 48, "#ffd700");
-            drawText("DRAGON WARRIOR", 450, 200, 36, "#ff6400");
-            drawStaticSkin(ctx, 450, 350, SKINS[19], true, 3.0);
-            particles.push(new Particle(450+Math.cos(frames*0.1)*60, 350+Math.sin(frames*0.1)*60, [255,215,0], "star"));
-            
-            // TAP ANYWHERE TEXT!
-            drawText("TAP ANYWHERE TO CLOSE", 450, 520, 18, "#aaaaaa");
-        }
+        if (leaderboardData.length > 0) leaderboardData.forEach((f,i) => { let col = f.name===currentPlayerId?"#00ffc8":"white"; drawText(`${i+1}.${f.name}`, 680, 270+(i*35), 14, col, "left"); drawText(`${f.score}m`, 850, 270+(i*35), 14, col, "right"); });
 
     } else if (state === "SHARD_MENU") {
-        ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600);
-        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16);
-        drawText("SHARD EXCHANGE", 450, 100, 48, "#ffd700"); drawText(`Wallet: ${saveData.shards} Shards`, 450, 160, 24, "#00ffc8");
-
-        const T = ["Common", "Rare", "Epic", "Legendary"]; let r = T[shard_sel]; let cost = SHARD_PRICES[r]; let col = RARITY_COLORS[r];
-        
-        drawButton(250, 280, 50, 50, "◀", "#202030", "#404050", "white");
-        drawText(r.toUpperCase() + " SKIN", 450, 315, 36, col);
-        drawButton(600, 280, 50, 50, "▶", "#202030", "#404050", "white");
-
-        drawText(`Cost: ${cost} Shards`, 450, 380, 24, "white");
-        let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id)).length;
-        drawText(`Missing: ${missing}`, 450, 420, 20, missing > 0 ? "#32c850" : "#ff3232");
-
-        drawButton(350, 450, 200, 60, "PURCHASE", "#0096ff", "#00ffc8");
+        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16); drawText("SHARD EXCHANGE", 450, 100, 48, "#ffd700"); 
+        let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
+        drawButton(250, 280, 50, 50, "◀", "#202030", "#404050", "white"); drawText(r.toUpperCase(), 450, 315, 36, RARITY_COLORS[r]); drawButton(600, 280, 50, 50, "▶", "#202030", "#404050", "white");
+        drawText(`Cost: ${cost} Shards`, 450, 380, 20, "white");
+        drawButton(350, 450, 200, 60, "PURCHASE", "#202030", "#00ffc8");
 
     } else if (state === "GACHA_MENU") {
-        ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600);
-        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16);
-        drawText("GACHA TEMPLE", 450, 150, 54, "#ffd700"); drawText(`Cost: ${GACHA_COST} Gems`, 450, 220, 24, "white");
-        drawText(`Wallet: ${saveData.gems} Gems`, 450, 260, 24, "#00ffc8");
-        drawButton(350, 350, 200, 60, "SUMMON", "#800080", "#c832ff", "white", 24);
+        drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16); drawText("GACHA TEMPLE", 450, 150, 50, "#ffd700"); 
+        drawText(`Cost: ${GACHA_COST} Gems`, 450, 230, 20, "white"); drawText(`Wallet: ${saveData.gems} Gems`, 450, 270, 20, "#00ffc8");
+        drawButton(350, 350, 200, 60, "SUMMON", "#202030", "#c832ff", "white", 24);
 
     } else if (state === "GACHA_ANIM") {
-        ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
-        let pct = 1 - (gacha_timer / 240); 
-        let col = getGachaColor(pct, dramaType, gacha_target.rarity);
-
-        ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.beginPath(); ctx.arc(450, 300, 30 + pct*50, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450, 300, 15 + pct*25, 0, Math.PI*2); ctx.fill(); 
-        
-        for(let p of particles) p.draw(ctx);
-        drawText("SUMMONING...", 450, 100, 48, "white"); 
+        let pct = 1 - (gacha_timer / 180); 
+        let col = [150,150,150]; if(gacha_target.rarity==="Rare") col=[0,255,255]; if(gacha_target.rarity==="Epic") col=[255,50,50]; if(gacha_target.rarity==="Legendary") col=[255,215,0];
+        if (frames%5===0 && pct>0.5) particles.push(new Particle(450, 300, col, "wave"));
+        ctx.fillStyle=`rgb(${col})`; ctx.beginPath(); ctx.arc(450, 300, 20+pct*40, 0, Math.PI*2); ctx.fill();
+        particles.forEach(p=>p.draw(ctx)); drawText("SUMMONING...", 450, 100, 40, "white");
 
     } else if (state === "GACHA_RESULT") {
-        ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600); for(let p of particles) p.draw(ctx);
-        let col = RARITY_COLORS[gacha_target.rarity];
-        drawText(`PULLED: ${gacha_target.name}`, 450, 120, 48, col); drawText(`Rarity: ${gacha_target.rarity}`, 450, 170, 24, col);
-        preview.draw(ctx);
-        if (gacha_msg === "DUPLICATE") { drawText("DUPLICATE DETECTED", 450, 380, 24, "#ff3232"); drawText(`Converted to +${shard_reward} Shards`, 450, 420, 24, "#ffd700"); }
-        else drawText("NEW SKIN UNLOCKED!", 450, 380, 24, "#00ffc8");
-        drawButton(350, 500, 200, 50, "CONTINUE", "#202030", "#404050", "white");
+        particles.forEach(p=>p.draw(ctx)); drawText(`PULLED: ${gacha_target.name}`, 450, 150, 40, RARITY_COLORS[gacha_target.rarity]);
+        ctx.fillStyle=`rgb(${gacha_target.color})`; ctx.fillRect(415, 250, 70, 100);
+        drawText(gacha_msg, 450, 420, 20, "white"); drawButton(350, 500, 200, 50, "CONTINUE", "#202030", "#404050", "white");
     }
 }
 
