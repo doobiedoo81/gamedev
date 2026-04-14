@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Dragon Warrior Update</title>
+    <title>Crystal Jumper: Bug-Free Ultimate Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -103,7 +103,8 @@ function getMousePos(evt) {
 canvas.addEventListener("pointerdown", (e) => {
     let pos = getMousePos(e); mouseX = pos.x; mouseY = pos.y; handleCanvasClick(mouseX, mouseY);
 });
-window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); }); // Map space to tap
+// Also map Keyboard Spacebar to simulate a "Tap" at -1,-1
+window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); }); 
 
 function isBtn(mx, my, bx, by, bw, bh) { return mx >= bx && mx <= bx+bw && my >= by && my <= by+bh; }
 
@@ -131,7 +132,10 @@ const SKINS = [
     { id: 19, name: "DRAGON WARRIOR", color: [255, 215, 0], rarity: "Legendary" }
 ];
 const RARITY_COLORS = { "Starter": "#9696a0", "Common": "#32c850", "Rare": "#0096ff", "Epic": "#c832ff", "Legendary": "#ffd700" };
+
+// **BUG FIX**: Added the missing arrays here!
 const SHARD_PRICES = { "Common": 300, "Rare": 800, "Epic": 2000, "Legendary": 5000 };
+const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
 
 // Globals
 let platforms=[], gems=[], hazards=[], pads=[], orbs=[], particles=[], bg_props=[];
@@ -219,15 +223,11 @@ class Player {
         }
     }
     update() {
-        // Auto-Runner Forward Velocity
         let vx = game_speed;
-
         if(this.dashTimer>0){ 
             this.dashTimer--; vx=16; 
-            // Lerp smoothly to the sky
-            this.y += (150 - this.y) * 0.1; this.vy = 0;
+            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lerp to safe sky height
             
-            // Dragon / Dash Effects
             if (this.skinName === "DRAGON WARRIOR") {
                 particles.push(new Particle(this.x, this.y+this.h/2+Math.sin(frames*0.5)*20, [255,215,0], "dragon"));
                 particles.push(new Particle(this.x, this.y+this.h/2+Math.sin(frames*0.5+Math.PI)*20, [255,100,0], "dragon"));
@@ -235,20 +235,18 @@ class Player {
                 particles.push(new Particle(this.x, this.y+this.h/2, [0,150,255], "dash")); 
             }
             
-            // Magnet Effect! Pull all gems
+            // Magnet 
             gems.forEach(g => {
                 let dx = (this.x+15) - (g.x+10); let dy = (this.y+20) - (g.y+10);
                 if(dx*dx + dy*dy < 100000) { g.x += dx*0.1; g.y += dy*0.1; }
             });
 
-            // Safe Landing Algorithm!
+            // Safe Landing logic
             if (this.dashTimer === 30) {
-                // Calculate exactly where we will drop and build a mega-platform there
                 let dropX = this.x + (30 * vx);
                 platforms.push(new RectEntity(dropX - 100, 450, 600, 20));
-                last_plat_x = Math.max(last_plat_x, dropX + 500); // Push generator forward
+                last_plat_x = Math.max(last_plat_x, dropX + 500);
             }
-            // Start falling gracefully at the end
             if (this.dashTimer < 10) this.vy += this.gravity;
         } else {
             this.vy+=this.gravity;
@@ -256,10 +254,10 @@ class Player {
 
         this.x+=vx; 
         
-        // Y Collision
+        // Collisions
         this.y+=this.vy; this.onGround=false; 
         for(let p of platforms) if(AABB(this,p)){ 
-            if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } // Only land if falling from above
+            if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } 
         }
 
         for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
@@ -267,7 +265,6 @@ class Player {
 
         this.trail.push({x:this.x+this.w/2, y:this.y+this.h/2}); if(this.trail.length>12) this.trail.shift();
         
-        // Passives
         if(this.onGround && Math.random()<0.3 && this.dashTimer===0){ 
             let c=this.skinName==="Sand"?[210,180,140]:this.skinName==="Forest"?[50,200,50]:this.skinName==="Ash"?[80,80,80]:[150,150,150]; 
             particles.push(new Particle(this.x, this.y+this.h, c, "dust")); 
@@ -290,7 +287,6 @@ class Player {
 
         if(this.dashTimer>0){ 
             if (this.skinName==="DRAGON WARRIOR") {
-                // Draw Dragon Head
                 ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(cx+20, this.y+10); ctx.lineTo(cx+40, this.y+20); ctx.lineTo(cx+20, this.y+30); ctx.fill();
             } else {
                 ctx.strokeStyle="#0096ff"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 35, 0, Math.PI*2); ctx.stroke(); 
@@ -336,7 +332,7 @@ class Player {
         ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
         
         let eCol = (this.skinName==="INFERNO"||this.skinName==="DRAGON WARRIOR")?"#ff6400":this.skinName==="ABYSSAL"?"#00ffff":this.skinName==="Void"?"#ff00ff":"#141419";
-        ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); // Always facing right in auto-runner
+        ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); 
     }
 }
 
@@ -344,18 +340,16 @@ class Player {
 function generateChunk(lX, lY) {
     let cX=lX; let cY=lY; let np=Math.floor(rand(4,7));
     for(let i=0;i<np;i++){
-        let gap = rand(100, 200 + (game_speed*10)); // Gap scales with speed
+        let gap = rand(100, 200 + (game_speed*10));
         cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-80,80))); let pW=rand(200,500); 
         platforms.push(new RectEntity(cX, cY, pW, 20));
 
-        // High Road
         if(Math.random()<0.35){
             let aY=Math.max(100, cY-rand(140,180)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
             if(Math.random()<0.3) orbs.push(new DashOrb(cX + pW/2, aY-40)); else for(let j=0;j<4;j++) gems.push(new Gem(cX+80+(j*40), aY-35));
             pads.push(new JumpPad(cX+30, cY));
         }
 
-        // Decor
         bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
 
         let r=Math.random(); 
@@ -377,37 +371,41 @@ function rollGacha() {
 
 const player = new Player(); const preview = new Player();
 
-// --- Main Input Router ---
+// --- **BUG FIX:** Unified Click Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
     if (state === "MENU") {
-        if (showBanner) { showBanner=false; return; } // Click anywhere to close banner
-        if (isBtn(mx, my, 350, 250, 200, 60) || mx === -1) { // PLAY
+        if (showBanner) { showBanner=false; return; } 
+        // 1. Play Button or Spacebar
+        if (isBtn(mx, my, 350, 250, 200, 60) || mx === -1) { 
             state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
             platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
-            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; // Reset speed
+            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
         }
         else if (isBtn(mx, my, 200, 340, 200, 60)) state = "VAULT";
         else if (isBtn(mx, my, 500, 340, 200, 60)) state = "GACHA_MENU";
         else if (isBtn(mx, my, 350, 420, 200, 60)) { state = "SHARD_MENU"; shard_sel = 0; }
     } 
     else if (state === "PLAYING") {
-        player.jump(); // Tap anywhere to jump!
+        player.jump(); 
     }
     else if (state === "GAMEOVER") {
-        handleCanvasClick(-1,-1); // Trigger play
+        // **BUG FIX:** Remove infinite loop. Instantly reset level logic instead of calling handleCanvasClick.
+        state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
+        platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
+        last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
     }
     else if (state === "VAULT") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; // Back
-        // Check Grid (5 cols, 4 rows)
+        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; 
+        
         let c = 5; let startX = 50; let startY = 120;
         for (let i = 0; i < SKINS.length; i++) {
             let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
             if (isBtn(mx, my, x, y, 70, 80)) vault_sel = i;
         }
-        // Equip Btn
-        if (isBtn(mx, my, 550, 450, 200, 50)) {
+        // **BUG FIX:** Corrected Hitbox Width (250)
+        if (isBtn(mx, my, 550, 450, 250, 50)) {
             if (saveData.unlocked.includes(SKINS[vault_sel].id)) {
                 saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
             }
@@ -428,9 +426,10 @@ function handleCanvasClick(mx, my) {
     }
     else if (state === "SHARD_MENU") {
         if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
-        else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; // Left
-        else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; // Right
-        else if (isBtn(mx, my, 350, 450, 200, 60) || mx === -1) {
+        else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
+        else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
+        // **BUG FIX:** Fixed Y coordinate mismatch (480)
+        else if (isBtn(mx, my, 350, 480, 200, 60) || mx === -1) {
             let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
             if (saveData.shards >= cost) {
                 let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
@@ -450,16 +449,15 @@ function update() {
     
     if (state === "PLAYING") {
         player.update();
-        game_speed += 0.001; // Game gets progressively faster!
+        game_speed += 0.001; 
         
         if (camera_x + 1800 > last_plat_x) generateChunk(last_plat_x, last_plat_y);
 
-        // Cleanup
         platforms=platforms.filter(p=>p.x+p.w>camera_x-100); gems=gems.filter(g=>g.x+g.w>camera_x-100); 
         hazards=hazards.filter(h=>h.x+h.w>camera_x-100); pads=pads.filter(p=>p.x+p.w>camera_x-100); 
         orbs=orbs.filter(o=>o.x+o.w>camera_x-100); bg_props=bg_props.filter(b=>b.x>camera_x-100);
 
-        let target_cam = player.x - 200; // Keep player on left
+        let target_cam = player.x - 200; 
         camera_x += (target_cam - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
         distance = Math.max(distance, Math.floor(player.x / 10));
 
@@ -507,7 +505,10 @@ function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
         ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill();
     }
     ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.closePath(); ctx.save(); ctx.clip();
+    
+    if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
     ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill();
+    
     if (skin.rarity === "Legendary") {
         if (skin.name === "INFERNO" || skin.name === "DRAGON WARRIOR") {
             let yOff = (frames * 2) % 20; ctx.fillStyle = skin.name==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
@@ -533,27 +534,24 @@ function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
 }
 
 function drawBackground() {
-    // Dynamic Sky based on distance
-    let cycle = (distance % 5000) / 5000; // 0 to 1
+    let cycle = (distance % 5000) / 5000; 
     let rTop, gTop, bTop, rBot, gBot, bBot;
-    if (cycle < 0.25) { // Night to Dawn
+    if (cycle < 0.25) { 
         rTop = 10+(cycle*4*40); gTop = 10+(cycle*4*20); bTop = 30-(cycle*4*10); rBot = 20+(cycle*4*100); gBot = 20+(cycle*4*40); bBot = 40+(cycle*4*10);
-    } else if (cycle < 0.5) { // Dawn to Day
+    } else if (cycle < 0.5) { 
         let p = (cycle-0.25)*4; rTop = 50-(p*30); gTop = 30+(p*100); bTop = 20+(p*200); rBot = 120-(p*50); gBot = 60+(p*100); bBot = 50+(p*200);
-    } else if (cycle < 0.75) { // Day to Sunset
+    } else if (cycle < 0.75) { 
         let p = (cycle-0.5)*4; rTop = 20+(p*80); gTop = 130-(p*80); bTop = 220-(p*180); rBot = 70+(p*150); gBot = 160-(p*100); bBot = 250-(p*200);
-    } else { // Sunset to Night
+    } else { 
         let p = (cycle-0.75)*4; rTop = 100-(p*90); gTop = 50-(p*40); bTop = 40-(p*10); rBot = 220-(p*200); gBot = 60-(p*40); bBot = 50-(p*10);
     }
     let grad = ctx.createLinearGradient(0,0,0,600); grad.addColorStop(0, `rgb(${rTop},${gTop},${bTop})`); grad.addColorStop(1, `rgb(${rBot},${gBot},${bBot})`);
     ctx.fillStyle = grad; ctx.fillRect(0,0,900,600);
 
-    // Parallax Mountains
     ctx.fillStyle = "#1a1a24"; ctx.beginPath();
     for(let i=0; i<10; i++) { let px = (i*200) - ((camera_x*0.2) % 200); ctx.lineTo(px, 400 - Math.sin(i)*100); }
     ctx.lineTo(900, 600); ctx.lineTo(0, 600); ctx.fill();
     
-    // Middle Parallax (Props)
     for(let b of bg_props) {
         let drawX = b.x - (camera_x * 0.5);
         if (drawX > -100 && drawX < 1000) {
@@ -578,7 +576,7 @@ function draw() {
         ctx.fillStyle="#202030"; ctx.strokeStyle="#00ffc8"; ctx.lineWidth=2;
         for (let p of platforms) { 
             ctx.fillRect(p.x, p.y, p.w, p.h); 
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+p.w, p.y); ctx.stroke(); // Neon top edge
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+p.w, p.y); ctx.stroke(); 
         }
         for(let p of pads) p.draw(ctx); for(let h of hazards) h.draw(ctx); for(let o of orbs) o.draw(ctx); for(let g of gems) g.draw(ctx); for(let p of particles) p.draw(ctx);
         player.draw(ctx); ctx.restore();
@@ -596,7 +594,6 @@ function draw() {
         drawText("SKIN VAULT", 450, 60, 40, "#ffd700");
         let pct = Math.floor((saveData.unlocked.length / SKINS.length) * 100); drawText(`Completion: ${pct}%`, 450, 90, 16, "#aaaaaa");
 
-        // Grid on Left
         let c = 5; let startX = 50; let startY = 120;
         for (let i = 0; i < SKINS.length; i++) {
             let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
@@ -606,16 +603,16 @@ function draw() {
             drawStaticSkin(ctx, x+35, y+35, SKINS[i], saveData.unlocked.includes(SKINS[i].id), 0.8);
         }
 
-        // Preview on Right
         let s = SKINS[vault_sel]; let isUnl = saveData.unlocked.includes(s.id);
         ctx.fillStyle = "rgba(20,20,30,0.8)"; ctx.fillRect(500, 120, 350, 400); ctx.strokeStyle="#505064"; ctx.strokeRect(500, 120, 350, 400);
         drawText(isUnl ? s.name : "???", 675, 170, 36, isUnl ? RARITY_COLORS[s.rarity] : "#505064");
         drawText(isUnl ? s.rarity.toUpperCase() : "LOCKED", 675, 200, 20, isUnl ? RARITY_COLORS[s.rarity] : "#505064");
         
-        drawStaticSkin(ctx, 675, 320, s, isUnl, 2.5); // Big preview
+        drawStaticSkin(ctx, 675, 320, s, isUnl, 2.5);
 
+        // **BUG FIX:** Accurate Hitboxes and clear "IN USE" text mapping!
         if (isUnl) {
-            if (saveData.equipped_id === s.id) drawButton(550, 450, 250, 50, "EQUIPPED", "#404040", "#505050", "#aaaaaa");
+            if (saveData.equipped_id === s.id) drawButton(550, 450, 250, 50, "IN USE", "#404040", "#505050", "#aaaaaa");
             else drawButton(550, 450, 250, 50, "EQUIP SKIN", "#0096ff", "#00ffc8", "black");
         } else {
             drawButton(550, 450, 250, 50, "LOCKED", "#202020", "#303030", "#505050");
@@ -630,7 +627,6 @@ function draw() {
         drawText(`ID: [${currentPlayerId}]`, 250, 460, 16, "#aaaaaa");
         drawText(`Equipped: ${player.skinName}`, 250, 490, 24, `rgb(${player.color.join(",")})`);
         
-        // Canvas Buttons!
         drawButton(350, 250, 200, 60, "▶ PLAY", "#0096ff", "#00ffc8");
         drawButton(200, 340, 200, 60, "VAULT", "#800080", "#c832ff", "white");
         drawButton(500, 340, 200, 60, "GACHA", "#808000", "#ffd700", "black");
@@ -638,7 +634,6 @@ function draw() {
 
         drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 550, 20, "#00ffc8");
 
-        // Leaderboard simplified to right side
         ctx.fillStyle = "rgba(20, 20, 30, 0.8)"; ctx.strokeStyle = "#505064"; ctx.fillRect(680, 180, 200, 250); ctx.strokeRect(680, 180, 200, 250);
         drawText("LEADERBOARD", 780, 210, 16, "#ffd700");
         if (leaderboardData.length === 0) drawText("Loading...", 780, 300, 14, "#aaaaaa");
@@ -649,16 +644,12 @@ function draw() {
             }
         }
 
-        // --- NEW BANNER AD ---
         if (showBanner) {
             ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
             drawText("🔥 NEW SKIN ALERT 🔥", 450, 150, 48, "#ffd700");
             drawText("DRAGON WARRIOR", 450, 200, 36, "#ff6400");
             drawStaticSkin(ctx, 450, 350, SKINS[19], true, 3.0);
-            
-            // Add extra gold particles just for the banner
             particles.push(new Particle(450+Math.cos(frames*0.1)*60, 350+Math.sin(frames*0.1)*60, [255,215,0], "normal"));
-            
             drawButton(350, 500, 200, 50, "CLOSE", "#404040", "#606060", "white");
         }
 
@@ -677,6 +668,7 @@ function draw() {
         let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id)).length;
         drawText(`Missing: ${missing}`, 450, 420, 20, missing > 0 ? "#32c850" : "#ff3232");
 
+        // **BUG FIX:** Button hitboxes correctly map to exactly what is drawn on screen
         drawButton(350, 480, 200, 60, "PURCHASE", "#0096ff", "#00ffc8");
 
     } else if (state === "GACHA_MENU") {
