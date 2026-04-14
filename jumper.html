@@ -9,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
-        /* PERFECT MOBILE FIX: Disables the blue highlight flash and locks aspect ratio perfectly */
         * { -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
         body { margin: 0; padding: 0; background-color: #050508; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; touch-action: none; font-family: 'Arial', sans-serif;}
         #game-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;}
@@ -18,7 +17,7 @@
             border-radius: 12px; 
             width: 100%; 
             max-width: 900px; 
-            aspect-ratio: 900 / 600; /* mathematically locks the hitboxes */
+            aspect-ratio: 900 / 600; 
             background: #000; 
             cursor: pointer; 
         }
@@ -212,27 +211,29 @@ class ShardDrop extends RectEntity {
 class Hazard extends RectEntity { constructor(x,y){super(x,y-30,30,30);} draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.beginPath(); ctx.moveTo(this.x,this.y+30); ctx.lineTo(this.x+30,this.y+30); ctx.lineTo(this.x+15,this.y); ctx.fill(); } }
 class JumpPad extends RectEntity { draw(ctx){ ctx.fillStyle="#32ff64"; ctx.fillRect(this.x,this.y,40,10); } }
 
-// --- POWER UPS ---
+// EMOJI POWER-UPS
 class PowerUp extends RectEntity {
-    constructor(x,y,type){ super(x,y,30,30); this.pType=type; this.pulse=rand(0,6); }
+    constructor(x,y,type){ super(x,y,40,40); this.pType=type; this.pulse=rand(0,Math.PI*2); }
     draw(ctx) {
-        if(!this.active)return; this.pulse+=0.1; let dy=this.y+15+Math.sin(this.pulse)*5;
-        let c1, c2, t;
-        if(this.pType===0){ c1="#ff6400"; c2="#ff0000"; t="🚀"; } // Jetpack
-        else if(this.pType===1){ c1="#0096ff"; c2="#00ffff"; t="🧲"; } // Magnet
-        else if(this.pType===2){ c1="#32ff64"; c2="#00a000"; t="🛡️"; } // Shield
-        else if(this.pType===3){ c1="#ffd700"; c2="#ffffff"; t="👼"; } // Angel
-        else if(this.pType===4){ c1="#800080"; c2="#ff00ff"; t="🦇"; } // Demon
-        ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(this.x+15, dy, 18, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle=c2; ctx.lineWidth=3; ctx.stroke(); drawText(t, this.x+15, dy+6, 20, "white");
+        if(!this.active)return; this.pulse+=0.1; let dy=this.y+20+Math.sin(this.pulse)*5; let cx=this.x+20;
+        let c1, c2, emoji;
+        if(this.pType===0){ c1="rgba(255,100,0,0.5)"; c2="#ff0000"; emoji="🚀"; } // Jetpack
+        else if(this.pType===1){ c1="rgba(0,150,255,0.5)"; c2="#00ffff"; emoji="🧲"; } // Magnet
+        else if(this.pType===2){ c1="rgba(50,255,100,0.5)"; c2="#00ff00"; emoji="🛡️"; } // Shield
+        else if(this.pType===3){ c1="rgba(255,215,0,0.5)"; c2="#ffffff"; emoji="👼"; } // Angel
+        else if(this.pType===4){ c1="rgba(128,0,128,0.5)"; c2="#ff00ff"; emoji="🦇"; } // Demon
+        
+        ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(cx, dy, 20, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle=c2; ctx.lineWidth=2; ctx.stroke(); 
+        drawText(emoji, cx, dy+8, 24, "white");
+        ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.arc(cx-8, dy-8, 4, 0, Math.PI*2); ctx.fill(); // Bubble gloss
     }
 }
 
 class Player {
     constructor() { 
         this.x=150; this.y=300; this.w=30; this.h=40; this.vy=0; this.gravity=0.65; this.jumpPower=-13; this.onGround=false; this.trail=[]; 
-        // Power Up States
-        this.jetpack = 0; this.magnet = 0; this.shield = false; this.angel = false; this.demon = 0; this.iframes = 0;
+        this.jetpack=0; this.magnet=0; this.shield=false; this.angel=false; this.demon=0; this.iframes=0;
         this.updateSkin(); 
     }
     updateSkin(fId=null) {
@@ -259,35 +260,36 @@ class Player {
         let vx = game_speed;
         if(this.iframes > 0) this.iframes--;
 
-        // --- Demon Wings Logic ---
-        if (this.demon > 0) {
+        // Demon Wings
+        if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
             if (isPointerDown) {
-                this.vy = -6; // Fly up!
+                this.vy = -6; 
                 if(frames%2===0) particles.push(new Particle(this.x+15, this.y+20, [150,0,255], "fire"));
             } else {
-                this.vy += this.gravity * 0.5; // Glide
+                this.vy += this.gravity * 0.5; 
             }
         }
-        
-        // --- Jetpack Logic ---
-        if(this.jetpack > 0){ 
-            vx = 24; this.jetpack -= vx; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lock to sky
-            this.magnet = Math.max(this.magnet, 5); // Auto magnet
+
+        // Jetpack
+        if(this.jetpack>0){ 
+            this.jetpack--; vx=18; 
+            this.y += (150 - this.y) * 0.1; this.vy = 0;
+            this.magnet = Math.max(this.magnet, 5); 
             
             if (this.skinName === "DRAGON WARRIOR") {
                 particles.push(new Particle(this.x+15, this.y+20+Math.sin(frames*0.5)*30, [255,215,0], "dragon"));
                 particles.push(new Particle(this.x+15, this.y+20+Math.sin(frames*0.5+Math.PI)*30, [255,100,0], "dragon"));
             } else {
-                particles.push(new Particle(this.x, this.y+this.h/2, [0,150,255], "dash")); 
+                particles.push(new Particle(this.x, this.y+this.h/2, [255,100,0], "dash")); 
             }
-
-            if (this.jetpack <= 0) { // SAFE LANDING
+            
+            if (this.jetpack === 30) { // Build safe landing
                 let dropX = this.x + (40 * game_speed);
                 platforms.push(new RectEntity(dropX - 100, 450, 1000, 20));
                 last_plat_x = Math.max(last_plat_x, dropX + 900); 
             }
+            if (this.jetpack < 10) this.vy += this.gravity;
         } else if (this.demon <= 0) {
             this.vy += this.gravity;
         }
@@ -298,15 +300,16 @@ class Player {
             if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } 
         }
 
-        // Collectibles & Hazards
         for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
+        
+        // Power Up Collection
         for(let i of items) if(i.active && AABB(this,i)){ 
             i.active=false;
-            if(i.pType===0) this.jetpack = 3000;
-            else if(i.pType===1) this.magnet = 600;
-            else if(i.pType===2) this.shield = true;
-            else if(i.pType===3) this.angel = true;
-            else if(i.pType===4) this.demon = 600;
+            if(i.pType===0) this.jetpack=300; 
+            else if(i.pType===1) this.magnet=600; 
+            else if(i.pType===2) this.shield=true; 
+            else if(i.pType===3) this.angel=true; 
+            else if(i.pType===4) this.demon=600; 
             for(let k=0;k<30;k++) particles.push(new Particle(this.x+15, this.y+20, [255,255,255])); 
         }
 
@@ -318,9 +321,9 @@ class Player {
             gems.forEach(pull); collect_shards.forEach(pull);
         }
 
-        // Death & Revive Logic
+        // Death & Shield/Angel Logic
         let dead = this.y > 650;
-        if (this.invincibility <= 0 && this.jetpack <= 0) {
+        if (this.iframes <= 0 && this.jetpack <= 0) {
             for (let h of hazards) if (h.active && AABB(this, h)) {
                 if (this.shield) {
                     this.shield = false; h.active = false; this.iframes = 60;
@@ -355,11 +358,9 @@ class Player {
     }
     
     draw(ctx) {
-        if (this.iframes > 0 && frames % 4 < 2) return; // Flash when invincible
-
+        if (this.iframes > 0 && frames % 4 < 2) return; // Invincible flash
         let cx=this.x+this.w/2;
 
-        // Demon Wings Render
         if (this.demon > 0) {
             ctx.fillStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#ff00ff";
             ctx.beginPath(); ctx.moveTo(cx, this.y+10); ctx.lineTo(cx-40, this.y-20+Math.sin(frames*0.3)*20); ctx.lineTo(cx-10, this.y+30); ctx.fill();
@@ -376,7 +377,7 @@ class Player {
 
         if(this.jetpack>0){ 
             if (this.skinName==="DRAGON WARRIOR") {
-                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(cx+20, this.y+10); ctx.lineTo(cx+50, this.y+20); ctx.lineTo(cx+20, this.y+30); ctx.fill();
+                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(cx+20, this.y+10); ctx.lineTo(cx+45, this.y+20); ctx.lineTo(cx+20, this.y+30); ctx.fill();
             } else {
                 ctx.strokeStyle="#ff6400"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 35, 0, Math.PI*2); ctx.stroke(); 
             }
@@ -399,7 +400,7 @@ class Player {
 
         if (this.rarity === "Legendary") {
             if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO" ? "rgba(255, 200, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
+                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
                 ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
             } else if (this.skinName === "GALAXY") {
@@ -410,25 +411,22 @@ class Player {
                 let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
                 ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
             } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.4) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
+                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
             }
         }
         ctx.restore(); 
         ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
 
-        ctx.strokeStyle="#c8c8c8"; ctx.lineWidth=3; let off=(this.onGround)?Math.sin(frames*0.5)*6:0; ctx.beginPath(); ctx.moveTo(cx-6, this.y+this.h-8); ctx.lineTo(cx-6+off, this.y+this.h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx+6, this.y+this.h-8); ctx.lineTo(cx+6-off, this.y+this.h); ctx.stroke();
         ctx.fillStyle="#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
         
         let eCol = (this.skinName==="INFERNO"||this.skinName==="DRAGON WARRIOR")?"#ff6400":this.skinName==="ABYSSAL"?"#00ffff":this.skinName==="Void"?"#ff00ff":"#141419";
         ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); 
 
-        // Shield Render
         if (this.shield) {
             ctx.strokeStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#32ff64";
             ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 40+Math.sin(frames*0.1)*5, 0, Math.PI*2); ctx.stroke(); 
         }
-        // Angel Render
         if (this.angel) {
             ctx.strokeStyle = "#ffd700"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(cx, this.y-10+Math.sin(frames*0.1)*5, 15, 5, 0, 0, Math.PI*2); ctx.stroke();
         }
@@ -492,9 +490,9 @@ function drawBackground() {
     ctx.fillStyle = grad; ctx.fillRect(0,0,900,600);
 
     ctx.fillStyle = "#1a1a24"; ctx.beginPath();
-    for(let i=0; i<10; i++) { let px = (i*200) - ((camera_x*0.2) % 200); ctx.lineTo(px, 400 - Math.sin(i*99)*120); }
+    for(let i=0; i<15; i++) { let px = (i*180) - ((camera_x*0.1) % 180); ctx.lineTo(px, 350 - Math.sin(i*99)*120); }
     ctx.lineTo(900, 600); ctx.lineTo(0, 600); ctx.fill();
-    
+
     for(let b of bg_buildings) {
         let drawX = b.x - (camera_x * 0.3);
         if (drawX > -100 && drawX < 1000) {
@@ -517,26 +515,24 @@ function drawBackground() {
     }
 }
 
-// BUG FIX: Fair Terrain Generator
 function generateChunk(lX, lY) {
     let cX=lX; let cY=lY; let np=Math.floor(rand(5,8));
     for(let i=0;i<np;i++){
-        let gap = rand(80, 150); // Small, jumpable gaps
-        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-60,60))); 
-        let pW=rand(400,800); // Wide, safe platforms
+        let gap = rand(90, 170); 
+        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-60,60))); let pW=rand(200,500); 
         platforms.push(new RectEntity(cX, cY, pW, 20));
 
         if(Math.random()<0.35){
             let aY=Math.max(100, cY-rand(120,150)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
-            pads.push(new JumpPad(cX+20, cY)); 
+            pads.push(new JumpPad(cX+20, cY));
         }
 
         bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
-        if(Math.random()<0.4) bg_buildings.push({x: cX*0.5 + rand(0,300), y: rand(200, 350), w: rand(40, 80)});
+        if(Math.random()<0.4) bg_buildings.push({x: cX*0.5 + rand(0,300), y: rand(200, 350), w: rand(40, 80)}); 
 
         let r=Math.random(); 
-        if(r<0.12) items.push(new PowerUp(cX+pW/2, cY-70, Math.floor(rand(0, 5)))); // All Powerups!
-        else if(r<0.25) hazards.push(new Hazard(cX+pW/2, cY)); // Safe middle hazard
+        if(r<0.12) items.push(new PowerUp(cX+pW/2, cY-70, Math.floor(rand(0, 5)))); 
+        else if(r<0.25) hazards.push(new Hazard(cX+pW/2, cY)); 
         else if(r<0.65) for(let j=0;j<Math.floor(rand(1,5));j++) gems.push(new Gem(cX+pW/2+(j*30), cY-35));
         else if(r<0.80) collect_shards.push(new ShardDrop(cX+pW/2, cY-40)); 
         
@@ -557,7 +553,6 @@ function rollGacha() {
 
 const player = new Player(); const preview = new Player();
 
-// --- Main Input Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
@@ -632,7 +627,6 @@ function handleCanvasClick(mx, my) {
     }
 }
 
-// Custom Lerp for Gacha Gradient
 function getGachaColor(pct, drama, rarity) {
     let grey = [150,150,150], cyan = [0,255,255], red = [255,50,50], gold = [255,215,0];
     
@@ -642,8 +636,8 @@ function getGachaColor(pct, drama, rarity) {
         if(pct < 0.6) return cyan;
         if(pct < 0.8) return lerpColor(cyan, red, (pct-0.6)/0.2);
         if(pct < 0.9) return red;
-        if(pct < 0.95) return gold; // Bait Flash!
-        return red; // Break
+        if(pct < 0.95) return gold; 
+        return red; 
     }
     
     let rLevel = rarity === "Common" ? 1 : rarity === "Rare" ? 2 : rarity === "Epic" ? 3 : 4;
@@ -736,6 +730,7 @@ function draw() {
         if (state === "GAMEOVER") {
             ctx.fillStyle="rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
             drawText("ELIMINATED", 450, 200, 54, "#ff3232"); drawText(`Final Distance: ${distance}m`, 450, 270, 28, "white"); drawText(`High Score: ${saveData.high_score}m`, 450, 310, 28, "#ffd700");
+            
             drawButton(250, 420, 180, 60, "RESTART", "#0096ff", "#00ffc8", "black");
             drawButton(470, 420, 180, 60, "MENU", "#800080", "#c832ff", "white");
         }
@@ -828,6 +823,7 @@ function draw() {
 
     } else if (state === "GACHA_ANIM") {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
+        
         let pct = 1 - (gacha_timer / 240); 
         let col = getGachaColor(pct, dramaType, gacha_target.rarity);
 
