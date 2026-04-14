@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: The Power-Up Update</title>
+    <title>Crystal Jumper: Bug-Free Directors Cut</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -60,6 +60,7 @@ const firebaseConfig = {
   appId: "1:852548137714:web:8005960f02970829b8966b",
   measurementId: "G-5WK2XBQTBV"
 };
+
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -211,22 +212,22 @@ class ShardDrop extends RectEntity {
 class Hazard extends RectEntity { constructor(x,y){super(x,y-30,30,30);} draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.beginPath(); ctx.moveTo(this.x,this.y+30); ctx.lineTo(this.x+30,this.y+30); ctx.lineTo(this.x+15,this.y); ctx.fill(); } }
 class JumpPad extends RectEntity { draw(ctx){ ctx.fillStyle="#32ff64"; ctx.fillRect(this.x,this.y,40,10); } }
 
-// EMOJI POWER-UPS
+// Power-Ups
 class PowerUp extends RectEntity {
     constructor(x,y,type){ super(x,y,40,40); this.pType=type; this.pulse=rand(0,Math.PI*2); }
     draw(ctx) {
         if(!this.active)return; this.pulse+=0.1; let dy=this.y+20+Math.sin(this.pulse)*5; let cx=this.x+20;
         let c1, c2, emoji;
-        if(this.pType===0){ c1="rgba(255,100,0,0.5)"; c2="#ff0000"; emoji="🚀"; } // Jetpack
-        else if(this.pType===1){ c1="rgba(0,150,255,0.5)"; c2="#00ffff"; emoji="🧲"; } // Magnet
-        else if(this.pType===2){ c1="rgba(50,255,100,0.5)"; c2="#00ff00"; emoji="🛡️"; } // Shield
-        else if(this.pType===3){ c1="rgba(255,215,0,0.5)"; c2="#ffffff"; emoji="👼"; } // Angel
-        else if(this.pType===4){ c1="rgba(128,0,128,0.5)"; c2="#ff00ff"; emoji="🦇"; } // Demon
+        if(this.pType===0){ c1="rgba(255,100,0,0.5)"; c2="#ff0000"; emoji="🚀"; } 
+        else if(this.pType===1){ c1="rgba(0,150,255,0.5)"; c2="#00ffff"; emoji="🧲"; } 
+        else if(this.pType===2){ c1="rgba(50,255,100,0.5)"; c2="#00ff00"; emoji="🛡️"; } 
+        else if(this.pType===3){ c1="rgba(255,215,0,0.5)"; c2="#ffffff"; emoji="👼"; } 
+        else if(this.pType===4){ c1="rgba(128,0,128,0.5)"; c2="#ff00ff"; emoji="🦇"; } 
         
         ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(cx, dy, 20, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle=c2; ctx.lineWidth=2; ctx.stroke(); 
         drawText(emoji, cx, dy+8, 24, "white");
-        ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.arc(cx-8, dy-8, 4, 0, Math.PI*2); ctx.fill(); // Bubble gloss
+        ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.arc(cx-8, dy-8, 4, 0, Math.PI*2); ctx.fill(); 
     }
 }
 
@@ -260,7 +261,7 @@ class Player {
         let vx = game_speed;
         if(this.iframes > 0) this.iframes--;
 
-        // Demon Wings
+        // Demon Wings Fly Logic
         if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
             if (isPointerDown) {
@@ -271,10 +272,10 @@ class Player {
             }
         }
 
-        // Jetpack
+        // Jetpack Logic
         if(this.jetpack>0){ 
             this.jetpack--; vx=18; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0;
+            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lock to sky
             this.magnet = Math.max(this.magnet, 5); 
             
             if (this.skinName === "DRAGON WARRIOR") {
@@ -283,7 +284,7 @@ class Player {
             } else {
                 particles.push(new Particle(this.x, this.y+this.h/2, [255,100,0], "dash")); 
             }
-            
+
             if (this.jetpack === 30) { // Build safe landing
                 let dropX = this.x + (40 * game_speed);
                 platforms.push(new RectEntity(dropX - 100, 450, 1000, 20));
@@ -383,13 +384,16 @@ class Player {
             }
         }
         
+        // BUG FIX: Memory Safe Auras using Gradients instead of createElement
         if (this.rarity === "Epic" || this.rarity === "Legendary") {
-            let aura_surf = document.createElement('canvas'); aura_surf.width=80; aura_surf.height=80; let actx=aura_surf.getContext('2d');
             let acolor = this.skinName==="GALAXY"?[100,0,200]:this.skinName==="ABYSSAL"?[0,150,150]:this.skinName==="CHRONO"||this.skinName==="DRAGON WARRIOR"?[200,180,50]:this.skinName==="Void"?[50,0,100]:this.color;
             let intensity = this.rarity==="Epic" ? 15 : 30; let glow = Math.abs(Math.sin(Date.now()/150)) * (this.rarity==="Epic"?20:40);
-            actx.fillStyle = `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, ${intensity/255})`;
-            actx.beginPath(); actx.arc(40, 40, intensity + (glow/5), 0, Math.PI*2); actx.fill();
-            ctx.drawImage(aura_surf, cx-40, this.y+this.h/2-40);
+            let rad = intensity + (glow/5);
+            let grad = ctx.createRadialGradient(cx, this.y+this.h/2, 0, cx, this.y+this.h/2, rad);
+            grad.addColorStop(0, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0.8)`);
+            grad.addColorStop(1, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0)`);
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, rad, 0, Math.PI*2); ctx.fill();
         }
 
         ctx.beginPath(); ctx.moveTo(cx, this.y+15); ctx.lineTo(cx-16, this.y+this.h-8); ctx.lineTo(cx+16, this.y+this.h-8); ctx.closePath();
@@ -400,7 +404,7 @@ class Player {
 
         if (this.rarity === "Legendary") {
             if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
+                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO" ? "rgba(255, 200, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
                 ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
             } else if (this.skinName === "GALAXY") {
@@ -411,12 +415,13 @@ class Player {
                 let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
                 ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
             } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
+                if (Math.random() < 0.4) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
             }
         }
         ctx.restore(); 
         ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
 
+        ctx.strokeStyle="#c8c8c8"; ctx.lineWidth=3; let off=(this.onGround)?Math.sin(frames*0.5)*6:0; ctx.beginPath(); ctx.moveTo(cx-6, this.y+this.h-8); ctx.lineTo(cx-6+off, this.y+this.h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx+6, this.y+this.h-8); ctx.lineTo(cx+6-off, this.y+this.h); ctx.stroke();
         ctx.fillStyle="#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
         
@@ -442,10 +447,16 @@ function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
         drawText("?", 0, top+16, 20, "#505064"); drawText("LOCKED", 0, bottom+15, 12, "#505064"); ctx.restore(); return;
     }
     let c = skin.color;
+    
+    // Memory Safe Aura
     if (skin.rarity === "Legendary" || skin.rarity === "Epic") {
-        ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]}, ${skin.rarity==="Legendary"?0.2:0.05})`;
+        let grad = ctx.createRadialGradient(0, 0, 0, 0, 35);
+        grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]}, ${skin.rarity==="Legendary"?0.5:0.2})`);
+        grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]}, 0)`);
+        ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill();
     }
+    
     ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.closePath(); ctx.save(); ctx.clip();
     if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
     ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill();
@@ -557,15 +568,18 @@ function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
     if (state === "MENU") {
-        if (showBanner) { showBanner=false; return; } 
+        if (showBanner) { 
+            if(isBtn(mx,my, 350, 500, 200, 50) || mx === -1) showBanner=false; 
+            return; 
+        } 
         if (isBtn(mx, my, 350, 180, 200, 70) || mx === -1) { 
             state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[]; player.shield=false; player.angel=false; player.magnet=0; player.demon=0;
             platforms=[new RectEntity(0,400,1200,20)]; gems=[]; items=[]; collect_shards=[]; hazards=[]; pads=[]; bg_props=[]; bg_buildings=[];
             last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
         }
-        else if (isBtn(mx, my, 350, 260, 200, 60)) state = "VAULT";
-        else if (isBtn(mx, my, 350, 330, 200, 60)) state = "GACHA_MENU";
-        else if (isBtn(mx, my, 350, 400, 200, 60)) { state = "SHARD_MENU"; shard_sel = 0; }
+        else if (isBtn(mx, my, 350, 260, 95, 60)) state = "VAULT";
+        else if (isBtn(mx, my, 455, 260, 95, 60)) state = "GACHA_MENU";
+        else if (isBtn(mx, my, 350, 330, 200, 50)) { state = "SHARD_MENU"; shard_sel = 0; }
     } 
     else if (state === "PLAYING") {
         player.jump(); 
@@ -772,9 +786,9 @@ function draw() {
         drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
         
         drawButton(350, 180, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
-        drawButton(350, 260, 200, 60, "VAULT", "#800080", "#c832ff", "white");
-        drawButton(350, 330, 200, 60, "GACHA", "#808000", "#ffd700", "black");
-        drawButton(350, 400, 200, 60, "SHARD SHOP", "#640000", "#ff3232", "white");
+        drawButton(350, 260, 95, 60, "VAULT", "#800080", "#c832ff", "white", 16);
+        drawButton(455, 260, 95, 60, "GACHA", "#808000", "#ffd700", "black", 16);
+        drawButton(350, 330, 200, 50, "SHARD SHOP", "#640000", "#ff3232", "white", 18);
 
         drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 500, 20, "#00ffc8");
 
@@ -823,7 +837,6 @@ function draw() {
 
     } else if (state === "GACHA_ANIM") {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
-        
         let pct = 1 - (gacha_timer / 240); 
         let col = getGachaColor(pct, dramaType, gacha_target.rarity);
 
