@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Bug-Free Directors Cut</title>
+    <title>Crystal Jumper: The Power-Up Update</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -261,7 +261,6 @@ class Player {
         let vx = game_speed;
         if(this.iframes > 0) this.iframes--;
 
-        // Demon Wings Fly Logic
         if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
             if (isPointerDown) {
@@ -272,10 +271,9 @@ class Player {
             }
         }
 
-        // Jetpack Logic
         if(this.jetpack>0){ 
             this.jetpack--; vx=18; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lock to sky
+            this.y += (150 - this.y) * 0.1; this.vy = 0; 
             this.magnet = Math.max(this.magnet, 5); 
             
             if (this.skinName === "DRAGON WARRIOR") {
@@ -284,8 +282,8 @@ class Player {
             } else {
                 particles.push(new Particle(this.x, this.y+this.h/2, [255,100,0], "dash")); 
             }
-
-            if (this.jetpack === 30) { // Build safe landing
+            
+            if (this.jetpack === 30) { 
                 let dropX = this.x + (40 * game_speed);
                 platforms.push(new RectEntity(dropX - 100, 450, 1000, 20));
                 last_plat_x = Math.max(last_plat_x, dropX + 900); 
@@ -303,7 +301,6 @@ class Player {
 
         for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
         
-        // Power Up Collection
         for(let i of items) if(i.active && AABB(this,i)){ 
             i.active=false;
             if(i.pType===0) this.jetpack=300; 
@@ -314,7 +311,6 @@ class Player {
             for(let k=0;k<30;k++) particles.push(new Particle(this.x+15, this.y+20, [255,255,255])); 
         }
 
-        // Magnet Logic
         if (this.magnet > 0) {
             this.magnet--;
             if (this.skinName === "DRAGON WARRIOR" && frames%5===0) particles.push(new Particle(this.x+15, this.y+20, [255,215,0], "wave"));
@@ -322,7 +318,6 @@ class Player {
             gems.forEach(pull); collect_shards.forEach(pull);
         }
 
-        // Death & Shield/Angel Logic
         let dead = this.y > 650;
         if (this.iframes <= 0 && this.jetpack <= 0) {
             for (let h of hazards) if (h.active && AABB(this, h)) {
@@ -359,7 +354,7 @@ class Player {
     }
     
     draw(ctx) {
-        if (this.iframes > 0 && frames % 4 < 2) return; // Invincible flash
+        if (this.iframes > 0 && frames % 4 < 2) return; 
         let cx=this.x+this.w/2;
 
         if (this.demon > 0) {
@@ -384,7 +379,6 @@ class Player {
             }
         }
         
-        // BUG FIX: Memory Safe Auras using Gradients instead of createElement
         if (this.rarity === "Epic" || this.rarity === "Legendary") {
             let acolor = this.skinName==="GALAXY"?[100,0,200]:this.skinName==="ABYSSAL"?[0,150,150]:this.skinName==="CHRONO"||this.skinName==="DRAGON WARRIOR"?[200,180,50]:this.skinName==="Void"?[50,0,100]:this.color;
             let intensity = this.rarity==="Epic" ? 15 : 30; let glow = Math.abs(Math.sin(Date.now()/150)) * (this.rarity==="Epic"?20:40);
@@ -404,7 +398,7 @@ class Player {
 
         if (this.rarity === "Legendary") {
             if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO" ? "rgba(255, 200, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
+                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
                 ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
             } else if (this.skinName === "GALAXY") {
@@ -415,13 +409,12 @@ class Player {
                 let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
                 ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
             } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.4) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
+                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
             }
         }
         ctx.restore(); 
         ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
 
-        ctx.strokeStyle="#c8c8c8"; ctx.lineWidth=3; let off=(this.onGround)?Math.sin(frames*0.5)*6:0; ctx.beginPath(); ctx.moveTo(cx-6, this.y+this.h-8); ctx.lineTo(cx-6+off, this.y+this.h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx+6, this.y+this.h-8); ctx.lineTo(cx+6-off, this.y+this.h); ctx.stroke();
         ctx.fillStyle="#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
         
@@ -448,7 +441,6 @@ function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
     }
     let c = skin.color;
     
-    // Memory Safe Aura
     if (skin.rarity === "Legendary" || skin.rarity === "Epic") {
         let grad = ctx.createRadialGradient(0, 0, 0, 0, 35);
         grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]}, ${skin.rarity==="Legendary"?0.5:0.2})`);
@@ -569,8 +561,8 @@ function handleCanvasClick(mx, my) {
 
     if (state === "MENU") {
         if (showBanner) { 
-            if(isBtn(mx,my, 350, 500, 200, 50) || mx === -1) showBanner=false; 
-            return; 
+            // TAP ANYWHERE TO CLOSE BANNER!
+            showBanner=false; return; 
         } 
         if (isBtn(mx, my, 350, 180, 200, 70) || mx === -1) { 
             state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[]; player.shield=false; player.angel=false; player.magnet=0; player.demon=0;
@@ -800,6 +792,17 @@ function draw() {
                 let f = leaderboardData[i]; let col = f.name === currentPlayerId ? "#00ffc8" : "white";
                 drawText(`${i+1}.${f.name}`, 680, 270 + (i*35), 14, col, "left"); drawText(`${f.score}m`, 850, 270 + (i*35), 14, col, "right");
             }
+        }
+
+        if (showBanner) {
+            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
+            drawText("🔥 NEW SKIN ALERT 🔥", 450, 150, 48, "#ffd700");
+            drawText("DRAGON WARRIOR", 450, 200, 36, "#ff6400");
+            drawStaticSkin(ctx, 450, 350, SKINS[19], true, 3.0);
+            particles.push(new Particle(450+Math.cos(frames*0.1)*60, 350+Math.sin(frames*0.1)*60, [255,215,0], "star"));
+            
+            // TAP ANYWHERE TEXT!
+            drawText("TAP ANYWHERE TO CLOSE", 450, 520, 18, "#aaaaaa");
         }
 
     } else if (state === "SHARD_MENU") {
