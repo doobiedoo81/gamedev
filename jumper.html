@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Flawless UI Edition</title>
+    <title>Crystal Jumper: Bug-Free UI Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -28,7 +28,7 @@
         <div id="login-overlay">
             <div class="login-box">
                 <h2>SYSTEM LOGIN</h2>
-                <p style="color:#888; font-size:14px;">Enter Player ID to load Cloud Save</p>
+                <p style="color:#888; font-size:14px;">Enter Player ID to sync Cloud Save</p>
                 <input type="text" id="player-id" placeholder="e.g., hero" autocomplete="off">
                 <button class="login-btn" onclick="attemptLogin()">CONNECT</button>
                 <div id="loading-text">Authenticating...</div>
@@ -113,7 +113,11 @@ function drawButton(x, y, w, h, text, col1, col2, txtCol="black", txtSize=20) {
     drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
 }
 
-// --- Game Data (20 SKINS) ---
+// --- Game Data (BUG FIX: RESTORED MISSING PRICES) ---
+const GACHA_COST = 50; 
+const SHARD_PRICES = { "Common": 300, "Rare": 800, "Epic": 2000, "Legendary": 5000 };
+const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
+
 const SKINS = [
     { id: 0, name: "Squire", color: [150, 150, 160], rarity: "Starter" },
     { id: 1, name: "Forest", color: [50, 200, 80], rarity: "Common" },
@@ -137,8 +141,6 @@ const SKINS = [
     { id: 19, name: "DRAGON WARRIOR", color: [255, 215, 0], rarity: "Legendary" }
 ];
 const RARITY_COLORS = { "Starter": "#9696a0", "Common": "#aaaaaa", "Rare": "#00ffff", "Epic": "#ff3232", "Legendary": "#ffd700" };
-const SHARD_PRICES = { "Common": 300, "Rare": 800, "Epic": 2000, "Legendary": 5000 };
-const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
 
 // Globals
 let platforms=[], gems=[], hazards=[], pads=[], orbs=[], particles=[], bg_props=[];
@@ -158,7 +160,7 @@ class Particle {
         else if(type==="dash"){ this.dx=rand(-8,-4); this.dy=rand(-2,2); this.life=255; this.size=6; }
         else if(type==="dragon"){ this.dx=rand(-6,-3); this.dy=rand(-1,1); this.life=255; this.size=8; }
         else if(type==="bubble"||type==="leaf"||type==="snow"){ this.dx=rand(-2,2); this.dy=rand(-1,2); this.life=200; this.size=rand(2,5); }
-        else if(type==="shockwave"){ this.dx=0; this.dy=0; this.life=255; this.radius=5; }
+        else if(type==="shockwave" || type==="wave"){ this.dx=0; this.dy=0; this.life=255; this.radius=5; }
         else if(type==="star"){ this.dx=rand(-4,4); this.dy=rand(-4,4); this.life=255; this.size=rand(2,5); }
         else{ let a=rand(0,Math.PI*2); let s=rand(2,6); this.dx=Math.cos(a)*s; this.dy=Math.sin(a)*s; }
     }
@@ -167,12 +169,13 @@ class Particle {
         if(this.type==="fire"||this.type==="dragon"){ this.life-=10; this.size=Math.max(0.1,this.size-0.1); }
         else if(this.type==="bubble"||this.type==="leaf"||this.type==="snow"){ this.life-=8; this.x+=Math.sin(frames*0.1)*2; }
         else if(this.type==="shockwave"){ this.life-=10; this.radius+=5; } 
+        else if(this.type==="wave"){ this.life-=8; this.radius+=3; } // Epic pulse ring
         else if(this.type==="star"){ this.life-=5; this.size=Math.max(0.1,this.size-0.05); }
         else this.life-=10;
     }
     draw(ctx) {
         if(this.life<=0)return; ctx.save();
-        if(this.type==="shockwave"){
+        if(this.type==="shockwave" || this.type==="wave"){
             ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
             ctx.strokeStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`; ctx.lineWidth=3; ctx.stroke();
         } else if (this.type==="leaf" || this.type==="snow") {
@@ -222,11 +225,12 @@ class Player {
             case "ABYSSAL": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [0,255,255], "shockwave")); particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,0,100], "shockwave")); break;
             case "CHRONO": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "shockwave")); break;
             case "DRAGON WARRIOR": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "shockwave")); for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "fire")); break;
-            default: particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,255,255], "shockwave")); break;
+            default: particles.push(new Particle(this.x+this.w/2, this.y+this.h, [200,200,200], "shockwave")); break;
         }
     }
     update() {
         let vx = game_speed;
+
         if(this.dashTimer>0){ 
             this.dashTimer--; vx=16; 
             this.y += (150 - this.y) * 0.1; this.vy = 0; // Lerp to sky
@@ -309,7 +313,7 @@ class Player {
 
         if (this.rarity === "Legendary") {
             if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO" ? "rgba(255, 200, 0, 0.5)" : "rgba(255, 0, 0, 0.5)";
+                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 0, 0, 0.5)";
                 ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
             } else if (this.skinName === "GALAXY") {
@@ -320,7 +324,7 @@ class Player {
                 let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
                 ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
             } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.4) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
+                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
             }
         }
         ctx.restore(); 
@@ -435,40 +439,35 @@ function generateChunk(lX, lY) {
     last_plat_x=cX; last_plat_y=cY;
 }
 
-// BUG FIX: Completely robust Gacha mathematics. Guaranteed to return a valid skin!
 function rollGacha() {
-    let r = Math.random(); let pool = [];
-    if (r > 0.99) pool = SKINS.filter(s => s.rarity === "Legendary");
-    else if (r > 0.91) pool = SKINS.filter(s => s.rarity === "Epic");
-    else if (r > 0.60) pool = SKINS.filter(s => s.rarity === "Rare");
-    else pool = SKINS.filter(s => s.rarity === "Common");
-    
-    return pool[Math.floor(Math.random() * pool.length)]; // Safe array bounds!
+    let r = Math.random();
+    if (r > 0.99) return SKINS.filter(s => s.rarity === "Legendary")[Math.floor(Math.random()*4)];
+    if (r > 0.91) return SKINS.filter(s => s.rarity === "Epic")[Math.floor(Math.random()*4)];
+    if (r > 0.60) return SKINS.filter(s => s.rarity === "Rare")[Math.floor(Math.random()*5)];
+    return SKINS.filter(s => s.rarity === "Common")[Math.floor(Math.random()*6)];
 }
 
 const player = new Player(); const preview = new Player();
 
-// --- Main Input Router (Clean Hitboxes) ---
+// --- Main Input Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
     if (state === "MENU") {
         if (showBanner) { showBanner=false; return; } 
-        // Sleek stacked menu UI mappings
-        if (isBtn(mx, my, 350, 220, 200, 70) || mx === -1) { 
+        if (isBtn(mx, my, 350, 180, 200, 70) || mx === -1) { 
             state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
             platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
             last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
         }
-        else if (isBtn(mx, my, 350, 310, 95, 60)) state = "VAULT";
-        else if (isBtn(mx, my, 455, 310, 95, 60)) state = "GACHA_MENU";
-        else if (isBtn(mx, my, 350, 385, 200, 50)) { state = "SHARD_MENU"; shard_sel = 0; }
+        else if (isBtn(mx, my, 350, 260, 200, 60)) state = "VAULT";
+        else if (isBtn(mx, my, 350, 330, 200, 60)) state = "GACHA_MENU";
+        else if (isBtn(mx, my, 350, 400, 200, 60)) { state = "SHARD_MENU"; shard_sel = 0; }
     } 
     else if (state === "PLAYING") {
         player.jump(); 
     }
     else if (state === "GAMEOVER") {
-        // INSTANT RESTART (No loops!)
         state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
         platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
         last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
@@ -496,6 +495,8 @@ function handleCanvasClick(mx, my) {
                 gacha_target = rollGacha();
                 preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
                 state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "GACHA_MENU";
+            } else {
+                alert("Not enough Gems!"); // Alert instead of failing silently
             }
         }
     }
@@ -515,7 +516,7 @@ function handleCanvasClick(mx, my) {
                 let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
                 if (missing.length > 0) {
                     saveData.shards -= cost; syncToCloud();
-                    gacha_target = missing[Math.floor(Math.random() * missing.length)]; // Safe pulling!
+                    gacha_target = missing[Math.floor(Math.random() * missing.length)];
                     preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
                     state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "SHARD_MENU";
                 } else alert(`You already own all ${r} skins!`);
@@ -524,7 +525,7 @@ function handleCanvasClick(mx, my) {
     }
 }
 
-// --- Main Engine ---
+// --- Main Loop Updates ---
 function update() {
     frames++; if (state === "LOGIN") return; 
     
@@ -557,23 +558,22 @@ function update() {
     } else if (state === "GACHA_ANIM") {
         gacha_timer--;
         
-        // UNIQUE RARITY EFFECTS
+        // PERFECTED VFX FOR PULLING
         let pct = 1 - (gacha_timer / 180); 
-        let r_col = [150, 150, 150]; // Common Grey
-        if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; // Rare Cyan
-        if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; // Epic Red
-        if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; // Legendary Gold
-
+        
         if (gacha_timer % 3 === 0) {
-            if (gacha_target.rarity === "Legendary") particles.push(new Particle(450+rand(-60,60), 300+rand(-60,60), [255,215,0], "star"));
-            if (gacha_target.rarity === "Epic" && gacha_timer % 15 === 0) particles.push(new Particle(450, 300, [255,50,50], "shockwave"));
+            let r = gacha_target.rarity;
+            if (r === "Legendary") particles.push(new Particle(450+rand(-60,60), 300+rand(-60,60), [255,215,0], "star"));
+            else if (r === "Epic" && gacha_timer % 15 === 0) particles.push(new Particle(450, 300, [255,50,50], "wave"));
+            else if (r === "Rare") particles.push(new Particle(450+rand(-40,40), 300+rand(-40,40), [0,255,255], "normal"));
+            else particles.push(new Particle(450+rand(-30,30), 300+rand(-30,30), [150,150,150], "dust"));
         }
 
         if (gacha_timer <= 0) {
             let c = gacha_target.color; 
             for(let i=0;i<60;i++) particles.push(new Particle(450, 300, c));
             if (gacha_target.rarity === "Legendary") for(let i=0;i<30;i++) particles.push(new Particle(450, 300, [255,215,0], "star"));
-            if (gacha_target.rarity === "Epic") for(let i=0;i<3;i++) particles.push(new Particle(450, 300, [255,50,50], "shockwave"));
+            if (gacha_target.rarity === "Epic") for(let i=0;i<3;i++) particles.push(new Particle(450, 300, [255,50,50], "wave"));
 
             if (saveData.unlocked.includes(gacha_target.id)) {
                 gacha_msg="DUPLICATE"; shard_reward = gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
@@ -653,16 +653,16 @@ function draw() {
         for (let p of particles) p.draw(ctx);
         player.x = 180; player.y = 350; player.draw(ctx); 
 
-        // SLEEK REDESIGNED MENU
         drawText("CRYSTAL JUMPER", 450, 100, 54, "#c8c8ff");
         drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
         
-        drawButton(350, 220, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
-        drawButton(350, 310, 95, 60, "VAULT", "#800080", "#c832ff", "white", 16);
-        drawButton(455, 310, 95, 60, "GACHA", "#808000", "#ffd700", "black", 16);
-        drawButton(350, 385, 200, 50, "SHARD SHOP", "#640000", "#ff3232", "white", 18);
+        // Clean Centered Menu
+        drawButton(350, 180, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
+        drawButton(350, 260, 200, 60, "VAULT", "#800080", "#c832ff", "white");
+        drawButton(350, 330, 200, 60, "GACHA", "#808000", "#ffd700", "black");
+        drawButton(350, 400, 200, 60, "SHARD SHOP", "#640000", "#ff3232", "white");
 
-        drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 550, 20, "#00ffc8");
+        drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 500, 20, "#00ffc8");
 
         ctx.fillStyle = "rgba(15, 15, 20, 0.8)"; ctx.strokeStyle = "#505064"; ctx.fillRect(660, 200, 210, 250); ctx.strokeRect(660, 200, 210, 250);
         drawText("LEADERBOARD", 765, 230, 16, "#ffd700");
@@ -711,7 +711,7 @@ function draw() {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
         
         let pct = 1 - (gacha_timer / 180); 
-        let r_col = [150, 150, 150]; // Default Common Grey
+        let r_col = [150, 150, 150]; 
         if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; 
         if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; 
         if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; 
@@ -722,6 +722,8 @@ function draw() {
         ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad/2, 0, Math.PI*2); ctx.fill(); 
         drawText("SUMMONING...", 450, 100, 48, `rgb(${r},${g},${b})`);
+
+        for(let p of particles) p.draw(ctx); // Draw the custom rarity particles over the aura!
 
     } else if (state === "GACHA_RESULT") {
         ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600); for(let p of particles) p.draw(ctx);
