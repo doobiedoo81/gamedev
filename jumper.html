@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Ultimate Polished Edition</title>
+    <title>Crystal Jumper: Flawless UI Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -28,7 +28,7 @@
         <div id="login-overlay">
             <div class="login-box">
                 <h2>SYSTEM LOGIN</h2>
-                <p style="color:#888; font-size:14px;">Enter Player ID to sync Cloud Save</p>
+                <p style="color:#888; font-size:14px;">Enter Player ID to load Cloud Save</p>
                 <input type="text" id="player-id" placeholder="e.g., hero" autocomplete="off">
                 <button class="login-btn" onclick="attemptLogin()">CONNECT</button>
                 <div id="loading-text">Authenticating...</div>
@@ -91,7 +91,7 @@ function attemptLogin() {
 const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d");
 let frames = 0; let state = "LOGIN"; 
 
-// --- Input Handling (Unified Canvas Clicks) ---
+// --- Input Handling ---
 function getMousePos(evt) {
     let rect = canvas.getBoundingClientRect();
     let scaleX = canvas.width / rect.width; let scaleY = canvas.height / rect.height;
@@ -102,11 +102,18 @@ function getMousePos(evt) {
 canvas.addEventListener("pointerdown", (e) => {
     let pos = getMousePos(e); handleCanvasClick(pos.x, pos.y);
 });
-window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); });
+window.addEventListener("keydown", (e) => { if(e.code==="Space"||e.code==="ArrowUp") handleCanvasClick(-1,-1); }); 
 
 function isBtn(mx, my, bx, by, bw, bh) { return mx >= bx && mx <= bx+bw && my >= by && my <= by+bh; }
+function drawText(txt, x, y, size, col, align="center") { ctx.fillStyle=col; ctx.font=`bold ${size}px Arial`; ctx.textAlign=align; ctx.fillText(txt, x, y); }
+function drawButton(x, y, w, h, text, col1, col2, txtCol="black", txtSize=20) {
+    let grad = ctx.createLinearGradient(x, y, x, y+h); grad.addColorStop(0, col1); grad.addColorStop(1, col2);
+    ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect(x,y,w,h, 10); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.stroke();
+    drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
+}
 
-// --- Game Data (20 SKINS & REBALANCED RARITIES) ---
+// --- Game Data (20 SKINS) ---
 const SKINS = [
     { id: 0, name: "Squire", color: [150, 150, 160], rarity: "Starter" },
     { id: 1, name: "Forest", color: [50, 200, 80], rarity: "Common" },
@@ -137,17 +144,10 @@ const SHARD_TIERS = ["Common", "Rare", "Epic", "Legendary"];
 let platforms=[], gems=[], hazards=[], pads=[], orbs=[], particles=[], bg_props=[];
 let camera_x=0, last_plat_x=900, last_plat_y=400, distance=0, game_speed=5;
 let gacha_target=null, gacha_timer=0, gacha_msg="", shard_reward=0, showBanner=true, vault_sel=0, shard_sel=0;
-let gacha_return_state = "GACHA_MENU"; // <-- BUG FIX: Remembers where to return after pulling
+let gacha_return_state = "GACHA_MENU";
 
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function AABB(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
-function drawText(txt, x, y, size, col, align="center") { ctx.fillStyle=col; ctx.font=`bold ${size}px Arial`; ctx.textAlign=align; ctx.fillText(txt, x, y); }
-function drawButton(x, y, w, h, text, col1, col2, txtCol="black", txtSize=18) {
-    let grad = ctx.createLinearGradient(x, y, x, y+h); grad.addColorStop(0, col1); grad.addColorStop(1, col2);
-    ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect(x,y,w,h, 8); ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.stroke();
-    drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
-}
 
 // --- VFX Engine ---
 class Particle {
@@ -166,7 +166,7 @@ class Particle {
         this.x+=this.dx; this.y+=this.dy;
         if(this.type==="fire"||this.type==="dragon"){ this.life-=10; this.size=Math.max(0.1,this.size-0.1); }
         else if(this.type==="bubble"||this.type==="leaf"||this.type==="snow"){ this.life-=8; this.x+=Math.sin(frames*0.1)*2; }
-        else if(this.type==="shockwave"){ this.life-=15; this.radius+=4; } 
+        else if(this.type==="shockwave"){ this.life-=10; this.radius+=5; } 
         else if(this.type==="star"){ this.life-=5; this.size=Math.max(0.1,this.size-0.05); }
         else this.life-=10;
     }
@@ -222,15 +222,14 @@ class Player {
             case "ABYSSAL": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [0,255,255], "shockwave")); particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,0,100], "shockwave")); break;
             case "CHRONO": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "shockwave")); break;
             case "DRAGON WARRIOR": particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "shockwave")); for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "fire")); break;
-            default: particles.push(new Particle(this.x+this.w/2, this.y+this.h, [200,200,200], "shockwave")); break;
+            default: particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,255,255], "shockwave")); break;
         }
     }
     update() {
         let vx = game_speed;
-
         if(this.dashTimer>0){ 
             this.dashTimer--; vx=16; 
-            this.y += (150 - this.y) * 0.1; this.vy = 0; // Hover
+            this.y += (150 - this.y) * 0.1; this.vy = 0; // Lerp to sky
             
             if (this.skinName === "DRAGON WARRIOR") {
                 particles.push(new Particle(this.x, this.y+this.h/2+Math.sin(frames*0.5)*20, [255,215,0], "dragon"));
@@ -239,13 +238,11 @@ class Player {
                 particles.push(new Particle(this.x, this.y+this.h/2, [0,150,255], "dash")); 
             }
             
-            // Magnet
             gems.forEach(g => {
                 let dx = (this.x+15) - (g.x+10); let dy = (this.y+20) - (g.y+10);
                 if(dx*dx + dy*dy < 100000) { g.x += dx*0.1; g.y += dy*0.1; }
             });
 
-            // Safe Landing
             if (this.dashTimer === 30) {
                 let dropX = this.x + (30 * vx);
                 platforms.push(new RectEntity(dropX - 100, 450, 600, 20));
@@ -257,8 +254,6 @@ class Player {
         }
 
         this.x+=vx; 
-        
-        // Y Collision
         this.y+=this.vy; this.onGround=false; 
         for(let p of platforms) if(AABB(this,p)){ 
             if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } 
@@ -269,7 +264,6 @@ class Player {
 
         this.trail.push({x:this.x+this.w/2, y:this.y+this.h/2}); if(this.trail.length>12) this.trail.shift();
         
-        // Passives
         if(this.onGround && Math.random()<0.3 && this.dashTimer===0){ 
             let c=this.skinName==="Sand"?[210,180,140]:this.skinName==="Forest"?[50,200,50]:this.skinName==="Ash"?[80,80,80]:[150,150,150]; 
             particles.push(new Particle(this.x, this.y+this.h, c, "dust")); 
@@ -326,7 +320,7 @@ class Player {
                 let yOff = frames % 15; ctx.fillStyle = "rgba(255, 215, 0, 0.6)";
                 ctx.fillRect(cx-20, this.y+10+yOff, 40, 3); ctx.fillRect(cx-20, this.y+25+yOff, 40, 3); ctx.fillRect(cx-20, this.y-5+yOff, 40, 3);
             } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
+                if (Math.random() < 0.4) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
             }
         }
         ctx.restore(); 
@@ -339,177 +333,6 @@ class Player {
         let eCol = (this.skinName==="INFERNO"||this.skinName==="DRAGON WARRIOR")?"#ff6400":this.skinName==="ABYSSAL"?"#00ffff":this.skinName==="Void"?"#ff00ff":"#141419";
         ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); 
     }
-}
-
-// Parallax & Level Gen
-function generateChunk(lX, lY) {
-    let cX=lX; let cY=lY; let np=Math.floor(rand(4,7));
-    for(let i=0;i<np;i++){
-        let gap = rand(100, 200 + (game_speed*10)); 
-        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-80,80))); let pW=rand(200,500); 
-        platforms.push(new RectEntity(cX, cY, pW, 20));
-
-        if(Math.random()<0.35){
-            let aY=Math.max(100, cY-rand(140,180)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
-            if(Math.random()<0.3) orbs.push(new DashOrb(cX + pW/2, aY-40)); else for(let j=0;j<4;j++) gems.push(new Gem(cX+80+(j*40), aY-35));
-            pads.push(new JumpPad(cX+30, cY));
-        }
-
-        bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
-
-        let r=Math.random(); 
-        if(r<0.08) orbs.push(new DashOrb(cX+pW/2, cY-40)); 
-        else if(r<0.3) hazards.push(new Hazard(cX+pW/2, cY)); 
-        else if(r<0.7) for(let j=0;j<Math.floor(rand(1,5));j++) gems.push(new Gem(cX+pW/2+(j*30), cY-35));
-        cX+=pW;
-    }
-    last_plat_x=cX; last_plat_y=cY;
-}
-
-function rollGacha() {
-    let r = Math.random();
-    if (r > 0.99) return SKINS.filter(s => s.rarity === "Legendary")[Math.floor(Math.random()*4)];
-    if (r > 0.91) return SKINS.filter(s => s.rarity === "Epic")[Math.floor(Math.random()*4)];
-    if (r > 0.60) return SKINS.filter(s => s.rarity === "Rare")[Math.floor(Math.random()*5)];
-    return SKINS.filter(s => s.rarity === "Common")[Math.floor(Math.random()*6)];
-}
-
-const player = new Player(); const preview = new Player();
-
-// --- Main Input Router (FIXED HITBOXES & STATE ROUTING) ---
-function handleCanvasClick(mx, my) {
-    if (state === "LOGIN") return;
-
-    if (state === "MENU") {
-        if (showBanner) { showBanner=false; return; } 
-        // Neatly stacked buttons
-        if (isBtn(mx, my, 350, 180, 200, 60) || mx === -1) { 
-            state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
-            platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
-            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
-        }
-        else if (isBtn(mx, my, 350, 260, 200, 60)) state = "VAULT";
-        else if (isBtn(mx, my, 350, 340, 200, 60)) state = "GACHA_MENU";
-        else if (isBtn(mx, my, 350, 420, 200, 60)) { state = "SHARD_MENU"; shard_sel = 0; }
-    } 
-    else if (state === "PLAYING") {
-        player.jump(); 
-    }
-    else if (state === "GAMEOVER") {
-        // INSTANT RESTART (No loop bugs)
-        state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
-        platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
-        last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
-    }
-    else if (state === "VAULT") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; 
-        
-        let c = 5; let startX = 50; let startY = 120;
-        for (let i = 0; i < SKINS.length; i++) {
-            let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
-            if (isBtn(mx, my, x, y, 70, 80)) vault_sel = i;
-        }
-        
-        if (isBtn(mx, my, 550, 450, 250, 50)) {
-            if (saveData.unlocked.includes(SKINS[vault_sel].id) && saveData.equipped_id !== SKINS[vault_sel].id) {
-                saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
-            }
-        }
-    }
-    else if (state === "GACHA_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
-        else if (isBtn(mx, my, 350, 350, 200, 60) || mx === -1) {
-            if (saveData.gems >= GACHA_COST) {
-                saveData.gems -= GACHA_COST; syncToCloud(); 
-                gacha_target = rollGacha();
-                preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
-                state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "GACHA_MENU"; // Remember return state!
-            }
-        }
-    }
-    else if (state === "GACHA_RESULT") {
-        if (isBtn(mx, my, 350, 500, 200, 50) || mx === -1) {
-            state = gacha_return_state; // Go back to where we came from!
-            if (state === "MENU") fetchLeaderboard();
-        }
-    }
-    else if (state === "SHARD_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
-        else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
-        else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
-        else if (isBtn(mx, my, 350, 480, 200, 60) || mx === -1) {
-            let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
-            if (saveData.shards >= cost) {
-                let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
-                if (missing.length > 0) {
-                    saveData.shards -= cost; syncToCloud();
-                    gacha_target = missing[Math.floor(Math.random() * missing.length)];
-                    preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
-                    state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "SHARD_MENU"; // Return here!
-                } else alert(`You already own all ${r} skins!`);
-            } else alert(`Not enough Shards! You need ${cost}.`);
-        }
-    }
-}
-
-// --- Main Engine ---
-function update() {
-    frames++; if (state === "LOGIN") return; 
-    
-    if (state === "PLAYING") {
-        player.update();
-        game_speed += 0.001; 
-        
-        if (camera_x + 1800 > last_plat_x) generateChunk(last_plat_x, last_plat_y);
-
-        platforms=platforms.filter(p=>p.x+p.w>camera_x-100); gems=gems.filter(g=>g.x+g.w>camera_x-100); 
-        hazards=hazards.filter(h=>h.x+h.w>camera_x-100); pads=pads.filter(p=>p.x+p.w>camera_x-100); 
-        orbs=orbs.filter(o=>o.x+o.w>camera_x-100); bg_props=bg_props.filter(b=>b.x>camera_x-100);
-
-        let target_cam = player.x - 200; 
-        camera_x += (target_cam - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
-        distance = Math.max(distance, Math.floor(player.x / 10));
-
-        let dead = player.y > 650;
-        if (player.dashTimer === 0) for (let h of hazards) if (h.active && AABB(player, h)) dead = true;
-
-        if (dead) {
-            state = "GAMEOVER";
-            if (distance > saveData.high_score) { saveData.high_score = distance; syncToCloud(); }
-        }
-
-        for (let g of gems) if (g.active && AABB(player, g)) { 
-            g.active=false; saveData.gems+=5; syncToCloud(); 
-            for(let i=0;i<5;i++) particles.push(new Particle(g.x+10,g.y+10,[0,255,200])); 
-        }
-    } else if (state === "GACHA_ANIM") {
-        gacha_timer--;
-        
-        // UNIQUE RARITY EFFECTS DURING SUMMONING
-        if (gacha_timer % 3 === 0) {
-            let r = gacha_target.rarity;
-            if (r === "Legendary") particles.push(new Particle(450+rand(-40,40), 300+rand(-40,40), [255,215,0], "star"));
-            else if (r === "Epic" && gacha_timer % 15 === 0) particles.push(new Particle(450, 300, [255,50,50], "shockwave"));
-        }
-
-        if (gacha_timer <= 0) {
-            // Burst effect on reveal
-            let c = gacha_target.color; 
-            for(let i=0;i<60;i++) particles.push(new Particle(450, 300, c));
-            if (gacha_target.rarity === "Legendary") for(let i=0;i<30;i++) particles.push(new Particle(450, 300, [255,215,0], "star"));
-
-            if (saveData.unlocked.includes(gacha_target.id)) {
-                gacha_msg="DUPLICATE"; shard_reward = gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
-            } else { gacha_msg="NEW SKIN!"; saveData.unlocked.push(gacha_target.id); }
-            syncToCloud(); state = "GACHA_RESULT";
-        }
-    } else if (state === "MENU" || state === "GACHA_RESULT" || state === "VAULT") {
-        if (frames % 20 === 0 && (player.skinName==="INFERNO" || player.skinName==="DRAGON WARRIOR")) {
-            let col = player.skinName==="INFERNO"?[255,50,0]:[255,215,0];
-            particles.push(new Particle(player.x+15+rand(-10,10), player.y+40, col, "fire"));
-        }
-    }
-    particles.forEach(p=>p.update()); particles=particles.filter(p=>p.life>0);
 }
 
 function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
@@ -587,10 +410,190 @@ function drawBackground() {
     }
 }
 
+// Parallax & Level Gen
+function generateChunk(lX, lY) {
+    let cX=lX; let cY=lY; let np=Math.floor(rand(4,7));
+    for(let i=0;i<np;i++){
+        let gap = rand(100, 200 + (game_speed*10)); 
+        cX+=gap; cY=Math.max(200, Math.min(500, cY+rand(-80,80))); let pW=rand(200,500); 
+        platforms.push(new RectEntity(cX, cY, pW, 20));
+
+        if(Math.random()<0.35){
+            let aY=Math.max(100, cY-rand(140,180)); platforms.push(new RectEntity(cX+50, aY, pW-50, 20));
+            if(Math.random()<0.3) orbs.push(new DashOrb(cX + pW/2, aY-40)); else for(let j=0;j<4;j++) gems.push(new Gem(cX+80+(j*40), aY-35));
+            pads.push(new JumpPad(cX+30, cY));
+        }
+
+        bg_props.push({x: cX+rand(0, pW-50), y: cY, type: Math.random()>0.5?"tree":"pillar"});
+
+        let r=Math.random(); 
+        if(r<0.08) orbs.push(new DashOrb(cX+pW/2, cY-40)); 
+        else if(r<0.3) hazards.push(new Hazard(cX+pW/2, cY)); 
+        else if(r<0.7) for(let j=0;j<Math.floor(rand(1,5));j++) gems.push(new Gem(cX+pW/2+(j*30), cY-35));
+        cX+=pW;
+    }
+    last_plat_x=cX; last_plat_y=cY;
+}
+
+// BUG FIX: Completely robust Gacha mathematics. Guaranteed to return a valid skin!
+function rollGacha() {
+    let r = Math.random(); let pool = [];
+    if (r > 0.99) pool = SKINS.filter(s => s.rarity === "Legendary");
+    else if (r > 0.91) pool = SKINS.filter(s => s.rarity === "Epic");
+    else if (r > 0.60) pool = SKINS.filter(s => s.rarity === "Rare");
+    else pool = SKINS.filter(s => s.rarity === "Common");
+    
+    return pool[Math.floor(Math.random() * pool.length)]; // Safe array bounds!
+}
+
+const player = new Player(); const preview = new Player();
+
+// --- Main Input Router (Clean Hitboxes) ---
+function handleCanvasClick(mx, my) {
+    if (state === "LOGIN") return;
+
+    if (state === "MENU") {
+        if (showBanner) { showBanner=false; return; } 
+        // Sleek stacked menu UI mappings
+        if (isBtn(mx, my, 350, 220, 200, 70) || mx === -1) { 
+            state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
+            platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
+            last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
+        }
+        else if (isBtn(mx, my, 350, 310, 95, 60)) state = "VAULT";
+        else if (isBtn(mx, my, 455, 310, 95, 60)) state = "GACHA_MENU";
+        else if (isBtn(mx, my, 350, 385, 200, 50)) { state = "SHARD_MENU"; shard_sel = 0; }
+    } 
+    else if (state === "PLAYING") {
+        player.jump(); 
+    }
+    else if (state === "GAMEOVER") {
+        // INSTANT RESTART (No loops!)
+        state = "PLAYING"; player.x=150; player.y=300; player.vy=0; player.dashTimer=0; player.trail=[];
+        platforms=[new RectEntity(0,400,1200,20)]; gems=[]; hazards=[]; pads=[]; orbs=[]; bg_props=[];
+        last_plat_x=1200; last_plat_y=400; camera_x=0; distance=0; game_speed=5; 
+    }
+    else if (state === "VAULT") {
+        if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; 
+        
+        let c = 5; let startX = 50; let startY = 120;
+        for (let i = 0; i < SKINS.length; i++) {
+            let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
+            if (isBtn(mx, my, x, y, 70, 80)) vault_sel = i;
+        }
+        
+        if (isBtn(mx, my, 550, 450, 250, 50)) {
+            if (saveData.unlocked.includes(SKINS[vault_sel].id) && saveData.equipped_id !== SKINS[vault_sel].id) {
+                saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
+            }
+        }
+    }
+    else if (state === "GACHA_MENU") {
+        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
+        else if (isBtn(mx, my, 350, 350, 200, 60) || mx === -1) {
+            if (saveData.gems >= GACHA_COST) {
+                saveData.gems -= GACHA_COST; syncToCloud(); 
+                gacha_target = rollGacha();
+                preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
+                state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "GACHA_MENU";
+            }
+        }
+    }
+    else if (state === "GACHA_RESULT") {
+        if (isBtn(mx, my, 350, 500, 200, 50) || mx === -1) {
+            state = gacha_return_state; 
+            if (state === "MENU") fetchLeaderboard();
+        }
+    }
+    else if (state === "SHARD_MENU") {
+        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
+        else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
+        else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
+        else if (isBtn(mx, my, 350, 450, 200, 60) || mx === -1) {
+            let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
+            if (saveData.shards >= cost) {
+                let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
+                if (missing.length > 0) {
+                    saveData.shards -= cost; syncToCloud();
+                    gacha_target = missing[Math.floor(Math.random() * missing.length)]; // Safe pulling!
+                    preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
+                    state = "GACHA_ANIM"; gacha_timer = 180; gacha_return_state = "SHARD_MENU";
+                } else alert(`You already own all ${r} skins!`);
+            } else alert(`Not enough Shards! You need ${cost}.`);
+        }
+    }
+}
+
+// --- Main Engine ---
+function update() {
+    frames++; if (state === "LOGIN") return; 
+    
+    if (state === "PLAYING") {
+        player.update();
+        game_speed += 0.001; 
+        
+        if (camera_x + 1800 > last_plat_x) generateChunk(last_plat_x, last_plat_y);
+
+        platforms=platforms.filter(p=>p.x+p.w>camera_x-100); gems=gems.filter(g=>g.x+g.w>camera_x-100); 
+        hazards=hazards.filter(h=>h.x+h.w>camera_x-100); pads=pads.filter(p=>p.x+p.w>camera_x-100); 
+        orbs=orbs.filter(o=>o.x+o.w>camera_x-100); bg_props=bg_props.filter(b=>b.x>camera_x-100);
+
+        let target_cam = player.x - 200; 
+        camera_x += (target_cam - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
+        distance = Math.max(distance, Math.floor(player.x / 10));
+
+        let dead = player.y > 650;
+        if (player.dashTimer === 0) for (let h of hazards) if (h.active && AABB(player, h)) dead = true;
+
+        if (dead) {
+            state = "GAMEOVER";
+            if (distance > saveData.high_score) { saveData.high_score = distance; syncToCloud(); }
+        }
+
+        for (let g of gems) if (g.active && AABB(player, g)) { 
+            g.active=false; saveData.gems+=5; syncToCloud(); 
+            for(let i=0;i<5;i++) particles.push(new Particle(g.x+10,g.y+10,[0,255,200])); 
+        }
+    } else if (state === "GACHA_ANIM") {
+        gacha_timer--;
+        
+        // UNIQUE RARITY EFFECTS
+        let pct = 1 - (gacha_timer / 180); 
+        let r_col = [150, 150, 150]; // Common Grey
+        if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; // Rare Cyan
+        if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; // Epic Red
+        if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; // Legendary Gold
+
+        if (gacha_timer % 3 === 0) {
+            if (gacha_target.rarity === "Legendary") particles.push(new Particle(450+rand(-60,60), 300+rand(-60,60), [255,215,0], "star"));
+            if (gacha_target.rarity === "Epic" && gacha_timer % 15 === 0) particles.push(new Particle(450, 300, [255,50,50], "shockwave"));
+        }
+
+        if (gacha_timer <= 0) {
+            let c = gacha_target.color; 
+            for(let i=0;i<60;i++) particles.push(new Particle(450, 300, c));
+            if (gacha_target.rarity === "Legendary") for(let i=0;i<30;i++) particles.push(new Particle(450, 300, [255,215,0], "star"));
+            if (gacha_target.rarity === "Epic") for(let i=0;i<3;i++) particles.push(new Particle(450, 300, [255,50,50], "shockwave"));
+
+            if (saveData.unlocked.includes(gacha_target.id)) {
+                gacha_msg="DUPLICATE"; shard_reward = gacha_target.rarity==="Common"?10:gacha_target.rarity==="Rare"?30:gacha_target.rarity==="Epic"?75:150; saveData.shards+=shard_reward;
+            } else { gacha_msg="NEW SKIN!"; saveData.unlocked.push(gacha_target.id); }
+            syncToCloud(); state = "GACHA_RESULT";
+        }
+    } else if (state === "MENU" || state === "GACHA_RESULT" || state === "VAULT") {
+        if (frames % 20 === 0 && (player.skinName==="INFERNO" || player.skinName==="DRAGON WARRIOR")) {
+            let col = player.skinName==="INFERNO"?[255,50,0]:[255,215,0];
+            particles.push(new Particle(player.x+15+rand(-10,10), player.y+40, col, "fire"));
+        }
+    }
+    particles.forEach(p=>p.update()); particles=particles.filter(p=>p.life>0);
+}
+
 function draw() {
     if (state === "LOGIN") return; 
+    ctx.fillStyle = "#0f0f19"; ctx.fillRect(0, 0, 900, 600); 
 
-    if (state === "PLAYING" || state === "GAMEOVER") {
+    if (state === "PLAYING") {
         drawBackground();
         ctx.save(); ctx.translate(-camera_x, 0);
         
@@ -604,11 +607,18 @@ function draw() {
 
         drawText(`GEMS: ${saveData.gems}`, 20, 40, 24, "#00ffc8", "left"); drawText(`DISTANCE: ${distance}m`, 880, 40, 24, "white", "right");
 
-        if (state === "GAMEOVER") {
-            ctx.fillStyle="rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,600);
-            drawText("ELIMINATED", 450, 250, 54, "#ff3232"); drawText(`Final Distance: ${distance}m`, 450, 310, 28, "white"); drawText(`High Score: ${saveData.high_score}m`, 450, 350, 28, "#ffd700");
-            drawText("TAP ANYWHERE TO RESTART", 450, 450, 20, "#aaaaaa");
-        }
+    } else if (state === "GAMEOVER") {
+        drawBackground();
+        ctx.save(); ctx.translate(-camera_x, 0);
+        ctx.fillStyle="#202030"; ctx.strokeStyle="#00ffc8"; ctx.lineWidth=2;
+        for (let p of platforms) { ctx.fillRect(p.x, p.y, p.w, p.h); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+p.w, p.y); ctx.stroke(); }
+        for(let p of pads) p.draw(ctx); for(let h of hazards) h.draw(ctx); for(let o of orbs) o.draw(ctx); for(let g of gems) g.draw(ctx); for(let p of particles) p.draw(ctx);
+        player.draw(ctx); ctx.restore();
+
+        ctx.fillStyle="rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
+        drawText("ELIMINATED", 450, 250, 54, "#ff3232"); drawText(`Final Distance: ${distance}m`, 450, 310, 28, "white"); drawText(`High Score: ${saveData.high_score}m`, 450, 350, 28, "#ffd700");
+        drawText("TAP ANYWHERE TO RESTART", 450, 450, 20, "#aaaaaa");
+
     } else if (state === "VAULT") {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600); for(let p of particles) p.draw(ctx); 
         drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16);
@@ -643,18 +653,17 @@ function draw() {
         for (let p of particles) p.draw(ctx);
         player.x = 180; player.y = 350; player.draw(ctx); 
 
-        // CLEANER MENU LAYOUT
+        // SLEEK REDESIGNED MENU
         drawText("CRYSTAL JUMPER", 450, 100, 54, "#c8c8ff");
         drawText(`Equipped: ${player.skinName}`, 180, 490, 20, `rgb(${player.color.join(",")})`);
         
-        drawButton(350, 180, 200, 60, "▶ PLAY", "#0096ff", "#00ffc8", "black", 24);
-        drawButton(350, 260, 200, 60, "VAULT", "#800080", "#c832ff", "white");
-        drawButton(350, 340, 200, 60, "GACHA", "#808000", "#ffd700", "black");
-        drawButton(350, 420, 200, 60, "SHARD SHOP", "#640000", "#ff3232", "white");
+        drawButton(350, 220, 200, 70, "▶ PLAY", "#0096ff", "#00ffc8", "black", 28);
+        drawButton(350, 310, 95, 60, "VAULT", "#800080", "#c832ff", "white", 16);
+        drawButton(455, 310, 95, 60, "GACHA", "#808000", "#ffd700", "black", 16);
+        drawButton(350, 385, 200, 50, "SHARD SHOP", "#640000", "#ff3232", "white", 18);
 
         drawText(`Gems: ${saveData.gems}  |  Shards: ${saveData.shards}`, 450, 550, 20, "#00ffc8");
 
-        // Leaderboard on the right
         ctx.fillStyle = "rgba(15, 15, 20, 0.8)"; ctx.strokeStyle = "#505064"; ctx.fillRect(660, 200, 210, 250); ctx.strokeRect(660, 200, 210, 250);
         drawText("LEADERBOARD", 765, 230, 16, "#ffd700");
         if (leaderboardData.length === 0) drawText("Loading...", 765, 300, 14, "#aaaaaa");
@@ -689,7 +698,7 @@ function draw() {
         let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id)).length;
         drawText(`Missing: ${missing}`, 450, 420, 20, missing > 0 ? "#32c850" : "#ff3232");
 
-        drawButton(350, 480, 200, 60, "PURCHASE", "#0096ff", "#00ffc8");
+        drawButton(350, 450, 200, 60, "PURCHASE", "#0096ff", "#00ffc8");
 
     } else if (state === "GACHA_MENU") {
         ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600);
@@ -701,19 +710,17 @@ function draw() {
     } else if (state === "GACHA_ANIM") {
         ctx.fillStyle = "#0a0a10"; ctx.fillRect(0,0,900,600);
         
-        // UNIQUE RARITY EFFECTS
         let pct = 1 - (gacha_timer / 180); 
-        let r_col = [150, 150, 150]; // Default grey
-        if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; // Cyan
-        if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; // Red
-        if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; // Gold
+        let r_col = [150, 150, 150]; // Default Common Grey
+        if (gacha_target.rarity === "Rare") r_col = [0, 255, 255]; 
+        if (gacha_target.rarity === "Epic") r_col = [255, 50, 50]; 
+        if (gacha_target.rarity === "Legendary") r_col = [255, 215, 0]; 
         
         let r = 200+(r_col[0]-200)*pct, g = 200+(r_col[1]-200)*pct, b = 200+(r_col[2]-200)*pct; 
         let rad = 20+(pct*40); let sx = rand(-5,5)*pct, sy = rand(-5,5)*pct;
 
         ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450+sx, 300+sy, rad/2, 0, Math.PI*2); ctx.fill(); 
-
         drawText("SUMMONING...", 450, 100, 48, `rgb(${r},${g},${b})`);
 
     } else if (state === "GACHA_RESULT") {
