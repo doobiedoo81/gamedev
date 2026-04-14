@@ -802,15 +802,6 @@ function draw() {
             }
         }
 
-        if (showBanner) {
-            ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0,900,600);
-            drawText("🔥 NEW SKIN ALERT 🔥", 450, 150, 48, "#ffd700");
-            drawText("DRAGON WARRIOR", 450, 200, 36, "#ff6400");
-            drawStaticSkin(ctx, 450, 350, SKINS[19], true, 3.0);
-            particles.push(new Particle(450+Math.cos(frames*0.1)*60, 350+Math.sin(frames*0.1)*60, [255,215,0], "star"));
-            drawButton(350, 500, 200, 50, "CLOSE", "#404040", "#606060", "white");
-        }
-
     } else if (state === "SHARD_MENU") {
         ctx.fillStyle = "#0f0f19"; ctx.fillRect(0,0,900,600);
         drawButton(50, 30, 100, 40, "◀ BACK", "#202030", "#303040", "white", 16);
