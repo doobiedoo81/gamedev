@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crystal Jumper: Mobile Web Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a10;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden; /* Prevents scrolling down on mobile */
+            touch-action: none; /* Prevents double-tap zooming */
+        }
+        canvas {
+            background-color: #0f0f19;
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+            border-radius: 10px;
+            image-rendering: pixelated;
+            max-width: 95vw;
+            max-height: 65vh; /* Leaves room for controls */
+            object-fit: contain;
+        }
+        
+        /* Mobile Virtual Gamepad */
+        #gamepad {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            width: 95vw;
+            max-width: 800px;
+        }
+        .row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn {
+            background: #202030;
+            color: white;
+            border: 2px solid #505064;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            user-select: none;
+            touch-action: none;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+        }
+        .btn:active {
+            background: #00ffc8;
+            color: black;
+            border-color: white;
+        }
+        .btn-action { background: #0096ff; }
+        .btn-action:active { background: white; }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="gamepad">
+        <div class="row">
+            <div class="btn" id="btn-left">◀ LEFT</div>
+            <div class="btn" id="btn-right">RIGHT ▶</div>
+            <div class="btn btn-action" id="btn-jump">▲ JUMP / OK</div>
+        </div>
+        <div class="row">
+            <div class="btn" id="btn-menu">MENU (M)</div>
+            <div class="btn" id="btn-gacha">GACHA (G)</div>
+            <div class="btn" id="btn-skin">CYCLE SKIN</div>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// --- Input Handling (Keyboard & Touch Unified) ---
+const keyPresses = {};
+
+// 1. Keyboard
+window.addEventListener("keydown", e => { 
+    if (!keyPresses[e.code]) { keyPresses[e.code] = true; handleStateInput(e.code); }
+});
+window.addEventListener("keyup", e => { keyPresses[e.code] = false; });
+
+// 2. Touch / Mobile Buttons
+function bindButton(id, code) {
+    const btn = document.getElementById(id);
+    const triggerDown = (e) => { e.preventDefault(); if (!keyPresses[code]) { keyPresses[code] = true; handleStateInput(code); } };
+    const triggerUp = (e) => { e.preventDefault(); keyPresses[code] = false; };
+    
+    btn.addEventListener("touchstart", triggerDown);
+    btn.addEventListener("touchend", triggerUp);
+    btn.addEventListener("mousedown", triggerDown); // Works for mouse clicks too
+    btn.addEventListener("mouseup", triggerUp);
+}
+
+bindButton("btn-left", "ArrowLeft");
+bindButton("btn-right", "ArrowRight");
+bindButton("btn-jump", "Space");   // Space acts as Jump and OK/Enter
+bindButton("btn-menu", "KeyM");    // We'll map M to menu return
+bindButton("btn-gacha", "KeyG");
+bindButton("btn-skin", "KeyC");    // Added KeyC specifically to cycle skins easily on mobile
+
+// --- Databases ---
+const GACHA_COST = 50;
+const SHARD_COST = 300;
+
+const SKINS = [
+    { id: 0, name: "Squire", color: [100, 100, 120], rarity: "Starter" },
+    { id: 1, name: "Forest", color: [50, 200, 80], rarity: "Common" },
+    { id: 2, name: "Ocean", color: [50, 100, 255], rarity: "Common" },
+    { id: 3, name: "Sand", color: [210, 180, 140], rarity: "Common" },
+    { id: 4, name: "Amethyst", color: [150, 50, 255], rarity: "Rare" },
+    { id: 5, name: "Bloodmoon", color: [200, 30, 30], rarity: "Rare" },
+    { id: 6, name: "Neon", color: [255, 0, 255], rarity: "Rare" },
+    { id: 7, name: "INFERNO", color: [255, 80, 0], rarity: "Legendary" },
+    { id: 8, name: "GALAXY", color: [20, 0, 50], rarity: "Legendary" },
+    { id: 9, name: "ABYSSAL", color: [0, 255, 255], rarity: "Legendary" },
+    { id: 10, name: "CHRONO", color: [255, 255, 255], rarity: "Legendary" }
+];
+
+const RARITY_COLORS = { "Starter": "#646478", "Common": "#32c850", "Rare": "#c832ff", "Legendary": "#ffd700" };
+
+// --- Save Data ---
+let saveData = JSON.parse(localStorage.getItem("crystalSave")) || {
+    gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0
+};
+function saveGame() { localStorage.setItem("crystalSave", JSON.stringify(saveData)); }
+
+// --- Globals ---
+let state = "MENU";
+let platforms = [], gems = [], hazards = [], pads = [], orbs = [], particles = [];
+let camera_x = 0, last_plat_x = 800, last_plat_y = 400, distance = 0;
+let gacha_target = null, gacha_timer = 0, gacha_msg = "", shard_reward = 0;
+let frames = 0;
+
+// --- Helper Functions ---
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function drawText(text, x, y, size, color, align="center") {
+    ctx.fillStyle = color; ctx.font = `bold ${size}px Arial`; ctx.textAlign = align; ctx.fillText(text, x, y);
+}
+function AABB(r1, r2) { return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y; }
+
+// --- FX Engine ---
+class Particle {
+    constructor(x, y, color, type="normal") {
+        this.x = x; this.y = y; this.color = color; this.type = type;
+        this.life = 255; this.size = 4;
+        
+        if (type === "dust") {
+            this.dx = rand(-1, 1); this.dy = rand(-2, 0); this.life = 150; this.size = rand(2, 4);
+        } else if (type === "fire") {
+            this.dx = rand(-1, 1); this.dy = rand(-4, -1); this.life = 200; this.size = rand(3, 6);
+        } else if (type === "dash") {
+            this.dx = rand(-5, -2); this.dy = rand(-1, 1); this.life = 255; this.size = 5;
+        } else if (type === "shockwave") {
+            this.dx = 0; this.dy = 0; this.life = 255; this.radius = 5;
+        } else {
+            let angle = rand(0, Math.PI * 2); let speed = rand(2, 6);
+            this.dx = Math.cos(angle) * speed; this.dy = Math.sin(angle) * speed;
+        }
+    }
+    update() {
+        this.x += this.dx; this.y += this.dy;
+        if (this.type === "fire") { this.life -= 12; this.size = Math.max(0.1, this.size - 0.1); }
+        else if (this.type === "shockwave") { this.life -= 15; this.radius += 3; }
+        else { this.life -= 10; }
+    }
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save();
+        if (this.type === "shockwave") {
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
+            ctx.lineWidth = 2; ctx.stroke();
+        } else {
+            ctx.fillStyle = `rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+// --- Level Entities ---
+class RectEntity { constructor(x, y, w, h) { this.x = x; this.y = y; this.w = w; this.h = h; this.active = true; } }
+class Gem extends RectEntity {
+    constructor(x, y) { super(x, y, 20, 20); this.pulse = rand(0, Math.PI*2); }
+    draw(ctx) {
+        if (!this.active) return;
+        this.pulse += 0.1; let drawY = this.y + 10 + Math.sin(this.pulse) * 5;
+        ctx.fillStyle = "#00ffc8"; ctx.beginPath(); ctx.arc(this.x+10, drawY, 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(this.x+10, drawY, 5, 0, Math.PI*2); ctx.fill();
+    }
+}
+class Hazard extends RectEntity {
+    constructor(x, y) { super(x, y-25, 25, 25); }
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.fillStyle = "#ff3232"; ctx.strokeStyle = "#640000"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(this.x, this.y + this.h); ctx.lineTo(this.x + this.w, this.y + this.h);
+        ctx.lineTo(this.x + this.w/2, this.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+}
+class JumpPad extends RectEntity {
+    constructor(x, y) { super(x, y-15, 30, 15); this.timer = 0; }
+    draw(ctx) {
+        if (!this.active) return;
+        let h = this.timer > 0 ? 25 : 15; if (this.timer > 0) this.timer--;
+        let drawY = this.y + this.h - h;
+        ctx.fillStyle = "#32ff64"; ctx.strokeStyle = "white"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(this.x+15, drawY+h/2, 15, h/2, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+}
+class DashOrb extends RectEntity {
+    constructor(x, y) { super(x, y, 24, 24); this.pulse = 0; }
+    draw(ctx) {
+        if (!this.active) return;
+        this.pulse += 0.15; let r = 12 + Math.sin(this.pulse) * 4;
+        let drawY = this.y + 12 + Math.sin(this.pulse)*5;
+        ctx.fillStyle = "#0096ff"; ctx.beginPath(); ctx.arc(this.x+12, drawY, r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#c8f0ff"; ctx.beginPath(); ctx.arc(this.x+12, drawY, r*0.5, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+// --- Player ---
+class Player {
+    constructor() {
+        this.x = 100; this.y = 300; this.w = 30; this.h = 40;
+        this.vx = 0; this.vy = 0; this.speed = 6; this.gravity = 0.6; this.jumpPower = -12;
+        this.onGround = false; this.facingRight = true; this.dashTimer = 0; this.trail = [];
+        this.updateSkin();
+    }
+    updateSkin(forceId = null) {
+        let id = forceId !== null ? forceId : saveData.equipped_id;
+        let s = SKINS.find(x => x.id === id);
+        this.skinName = s.name; this.color = s.color; this.isLegendary = s.rarity === "Legendary";
+    }
+    jump(superJump = false) {
+        this.vy = superJump ? -18 : this.jumpPower; this.onGround = false;
+        if (superJump) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [50,255,100], "shockwave"));
+        
+        if (this.skinName === "INFERNO") for(let i=0;i<15;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,100,0], "fire"));
+        else if (this.skinName === "ABYSSAL") {
+            particles.push(new Particle(this.x+this.w/2, this.y+this.h, [0,255,255], "shockwave"));
+            particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,0,100], "shockwave"));
+        } else if (this.skinName === "CHRONO") {
+            for(let i=0;i<10;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "normal"));
+            particles.push(new Particle(this.x+this.w/2, this.y+this.h, [255,215,0], "shockwave"));
+        }
+    }
+    update() {
+        if (this.dashTimer > 0) {
+            this.dashTimer--; this.vx = 14; this.vy = 0;
+            particles.push(new Particle(this.x, this.y+this.h/2, [0,150,255], "dash"));
+            if (this.dashTimer === 0) this.vx = this.speed;
+        } else {
+            if (keyPresses["ArrowLeft"] || keyPresses["KeyA"]) { this.vx = -this.speed; this.facingRight = false; }
+            else if (keyPresses["ArrowRight"] || keyPresses["KeyD"]) { this.vx = this.speed; this.facingRight = true; }
+            else this.vx = 0;
+            this.vy += this.gravity;
+        }
+
+        // Use Space as the unified action button
+        if ((keyPresses["ArrowUp"] || keyPresses["Space"] || keyPresses["KeyW"]) && this.onGround && this.dashTimer === 0) {
+            this.jump();
+        }
+
+        // X Collision
+        this.x += this.vx;
+        for (let p of platforms) {
+            if (AABB(this, p)) {
+                if (this.vx > 0) this.x = p.x - this.w;
+                else if (this.vx < 0) this.x = p.x + p.w;
+            }
+        }
+        // Y Collision
+        this.y += this.vy; this.onGround = false;
+        for (let p of platforms) {
+            if (AABB(this, p)) {
+                if (this.vy > 0) { this.y = p.y - this.h; this.vy = 0; this.onGround = true; }
+                else if (this.vy < 0) { this.y = p.y + p.h; this.vy = 0; }
+            }
+        }
+
+        // Interactions
+        for (let p of pads) if (p.active && AABB(this, p) && this.vy >= 0) { this.jump(true); p.timer = 15; }
+        for (let o of orbs) if (o.active && AABB(this, o)) { 
+            o.active = false; this.dashTimer = 60; 
+            for(let i=0;i<20;i++) particles.push(new Particle(this.x+this.w/2, this.y+this.h/2, [0,200,255]));
+        }
+
+        this.trail.push({x: this.x+this.w/2, y: this.y+this.h/2});
+        if (this.trail.length > 12) this.trail.shift();
+
+        if (this.skinName === "INFERNO" && Math.random() < 0.4) particles.push(new Particle(this.x+this.w/2+rand(-10,10), this.y+this.h-rand(0,20), [255,50,0], "fire"));
+        if (this.onGround && this.vx !== 0 && Math.random() < 0.3 && this.dashTimer === 0) {
+            let pColor = this.skinName === "Forest" ? [50,200,50] : [150,150,150];
+            particles.push(new Particle(this.facingRight ? this.x : this.x+this.w, this.y+this.h, pColor, "dust"));
+        }
+    }
+    draw(ctx) {
+        let cx = this.x + this.w/2;
+        
+        if (["GALAXY", "ABYSSAL", "Amethyst", "CHRONO", "Neon"].includes(this.skinName)) {
+            for (let i=0; i<this.trail.length; i++) {
+                let t = this.trail[i]; let size = 12 * (i/this.trail.length);
+                ctx.fillStyle = this.skinName==="GALAXY" ? `rgba(200,0,255,${i/this.trail.length})` : 
+                                this.skinName==="ABYSSAL" ? `rgba(0,255,255,${i/this.trail.length})` :
+                                this.skinName==="CHRONO" ? `rgba(255,215,0,${i/this.trail.length})` : `rgba(150,50,255,${i/this.trail.length})`;
+                ctx.beginPath(); ctx.arc(t.x, t.y, size, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        if (this.dashTimer > 0) {
+            ctx.strokeStyle = "#0096ff"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(cx, this.y+this.h/2, 35, 0, Math.PI*2); ctx.stroke();
+        }
+
+        ctx.fillStyle = `rgb(${this.color[0]},${this.color[1]},${this.color[2]})`;
+        ctx.beginPath(); ctx.moveTo(cx, this.y+15); ctx.lineTo(cx-16, this.y+this.h-8); ctx.lineTo(cx+16, this.y+this.h-8); ctx.fill();
+        ctx.strokeStyle = "#141419"; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.strokeStyle = "#c8c8c8"; ctx.lineWidth = 3;
+        let legOff = (this.vx !== 0 && this.onGround) ? Math.sin(frames * 0.5) * 6 : 0;
+        ctx.beginPath(); ctx.moveTo(cx-6, this.y+this.h-8); ctx.lineTo(cx-6+legOff, this.y+this.h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx+6, this.y+this.h-8); ctx.lineTo(cx+6-legOff, this.y+this.h); ctx.stroke();
+
+        ctx.fillStyle = "#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#141419"; ctx.lineWidth=2; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
+
+        let eyeOff = this.facingRight ? 3 : -3;
+        ctx.fillStyle = this.skinName === "INFERNO" ? "#ff6400" : this.skinName === "ABYSSAL" ? "#00ffff" : "#141419";
+        ctx.beginPath(); ctx.ellipse(cx+eyeOff-3, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx+eyeOff+3, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+// --- Procedural Generation ---
+function generateChunk(lastX, lastY) {
+    let currentX = lastX; let currentY = lastY;
+    let numPlats = Math.floor(rand(3, 6));
+
+    for (let i=0; i<numPlats; i++) {
+        currentX += rand(70, 160);
+        currentY = Math.max(200, Math.min(500, currentY + rand(-60, 60)));
+        let platW = rand(200, 400);
+        platforms.push(new RectEntity(currentX, currentY, platW, 20));
+
+        if (Math.random() < 0.3) {
+            let altY = Math.max(100, currentY - rand(120, 160));
+            platforms.push(new RectEntity(currentX+50, altY, platW-50, 20));
+            if (Math.random() < 0.4) orbs.push(new DashOrb(currentX + platW/2, altY-40));
+            else for(let j=0; j<3; j++) gems.push(new Gem(currentX+80+(j*40), altY-35));
+            pads.push(new JumpPad(currentX+30, currentY));
+        }
+
+        let roll = Math.random();
+        if (roll < 0.1) orbs.push(new DashOrb(currentX+platW/2, currentY-40));
+        else if (roll < 0.3) hazards.push(new Hazard(currentX+platW/2, currentY));
+        else if (roll < 0.7) for(let j=0; j<Math.floor(rand(1,4)); j++) gems.push(new Gem(currentX+platW/2+(j*30), currentY-35));
+        
+        currentX += platW;
+    }
+    last_plat_x = currentX; last_plat_y = currentY;
+}
+
+function rollGacha() {
+    let roll = Math.random();
+    if (roll > 0.88) return SKINS.filter(s => s.rarity === "Legendary")[Math.floor(Math.random()*4)];
+    if (roll > 0.55) return SKINS.filter(s => s.rarity === "Rare")[Math.floor(Math.random()*3)];
+    return SKINS.filter(s => s.rarity === "Common")[Math.floor(Math.random()*4)];
+}
+
+// --- Init & Loop ---
+const player = new Player();
+const preview = new Player();
+
+function handleStateInput(code) {
+    if (state === "MENU") {
+        if (code === "Enter" || code === "Space") { // Added Space as a trigger for mobile OK button
+            state = "PLAYING"; player.x = 100; player.y = 300; player.vy = 0; player.dashTimer = 0; player.trail = [];
+            platforms = [new RectEntity(0, 400, 800, 20)]; gems=[]; hazards=[]; pads=[]; orbs=[];
+            last_plat_x = 800; last_plat_y = 400; camera_x = 0; distance = 0;
+        } else if (code === "KeyG") state = "GACHA_MENU";
+        else if (code === "ArrowRight" || code === "KeyC") { // Added KeyC for the mobile Cycle Skin button
+            if (saveData.unlocked.length > 0) {
+                let idx = saveData.unlocked.indexOf(saveData.equipped_id);
+                saveData.equipped_id = saveData.unlocked[(idx + 1) % saveData.unlocked.length];
+                player.updateSkin(); saveGame();
+            }
+        }
+    } else if (state === "GACHA_MENU") {
+        if (code === "Escape" || code === "KeyM") state = "MENU"; // Map M to menu return
+        else if (code === "Space" && saveData.gems >= GACHA_COST) {
+            saveData.gems -= GACHA_COST; saveGame();
+            gacha_target = rollGacha();
+            preview.updateSkin(gacha_target.id); preview.x = 400 - 15; preview.y = 280;
+            state = "GACHA_ANIM"; gacha_timer = 180;
+        }
+    } else if (state === "GACHA_RESULT") {
+        if (code === "Space") state = "GACHA_MENU";
+    } else if (state === "PLAYING" && (code === "Escape" || code === "KeyM")) {
+        state = "MENU";
+    } else if (state === "GAMEOVER") {
+        if (code === "Space") handleStateInput("Enter"); // Space restarts game on mobile
+        else if (code === "KeyM") state = "MENU";
+    }
+}
+
+function update() {
+    frames++;
+    if (state === "PLAYING") {
+        player.update();
+        if (camera_x + 1600 > last_plat_x) generateChunk(last_plat_x, last_plat_y);
+
+        platforms = platforms.filter(p => p.x + p.w > camera_x - 400);
+        gems = gems.filter(g => g.x + g.w > camera_x - 400);
+        hazards = hazards.filter(h => h.x + h.w > camera_x - 400);
+        pads = pads.filter(p => p.x + p.w > camera_x - 400);
+        orbs = orbs.filter(o => o.x + o.w > camera_x - 400);
+
+        let target_cam = player.x - 266;
+        camera_x += (target_cam - camera_x) * 0.1; camera_x = Math.max(0, camera_x);
+        distance = Math.max(distance, Math.floor(player.x / 10));
+
+        let dead = false;
+        if (player.y > 600) dead = true;
+        if (player.dashTimer === 0) {
+            for (let h of hazards) if (h.active && AABB(player, h)) dead = true;
+        }
+
+        if (dead) {
+            state = "GAMEOVER";
+            if (distance > saveData.high_score) { saveData.high_score = distance; saveGame(); }
+            // Release movement keys so player doesn't instantly run on restart
+            keyPresses["ArrowLeft"] = false; keyPresses["ArrowRight"] = false;
+        }
+
+        for (let g of gems) {
+            if (g.active && AABB(player, g)) {
+                g.active = false; saveData.gems += 5; saveGame();
+                for(let i=0;i<5;i++) particles.push(new Particle(g.x+10, g.y+10, [0,255,200]));
+            }
+        }
+    } else if (state === "GACHA_ANIM") {
+        gacha_timer--;
+        if (gacha_timer <= 0) {
+            let color = gacha_target.color;
+            for(let i=0;i<50;i++) particles.push(new Particle(400, 300, color));
+            if (saveData.unlocked.includes(gacha_target.id)) {
+                gacha_msg = "DUPLICATE";
+                shard_reward = gacha_target.rarity==="Common"? 10 : gacha_target.rarity==="Rare"? 30 : 100;
+                saveData.shards += shard_reward;
+            } else {
+                gacha_msg = "NEW SKIN!";
+                saveData.unlocked.push(gacha_target.id);
+            }
+            saveGame();
+            state = "GACHA_RESULT";
+        }
+    } else if (state === "MENU" || state === "GACHA_RESULT") {
+        if (frames % 20 === 0 && (player.skinName === "INFERNO" || preview.skinName === "INFERNO")) {
+            let p = state === "MENU" ? player : preview;
+            particles.push(new Particle(p.x+15+rand(-10,10), p.y+40, [255,50,0], "fire"));
+        }
+    }
+
+    particles.forEach(p => p.update());
+    particles = particles.filter(p => p.life > 0);
+}
+
+function draw() {
+    ctx.fillStyle = "#0f0f19"; ctx.fillRect(0, 0, 800, 600); 
+
+    if (state === "PLAYING") {
+        ctx.save(); ctx.translate(-camera_x, 0);
+        
+        ctx.fillStyle = "#323246"; ctx.strokeStyle = "#505064"; ctx.lineWidth = 2;
+        for (let p of platforms) { ctx.fillRect(p.x, p.y, p.w, p.h); ctx.strokeRect(p.x, p.y, p.w, p.h); }
+        for (let p of pads) p.draw(ctx);
+        for (let h of hazards) h.draw(ctx);
+        for (let o of orbs) o.draw(ctx);
+        for (let g of gems) g.draw(ctx);
+        for (let p of particles) p.draw(ctx);
+        
+        player.draw(ctx);
+        ctx.restore();
+
+        drawText(`GEMS: ${saveData.gems}`, 20, 40, 24, "#00ffc8", "left");
+        drawText(`DISTANCE: ${distance}m`, 780, 40, 24, "white", "right");
+
+    } else if (state === "GAMEOVER") {
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0,0,800,600);
+        drawText("ELIMINATED", 400, 250, 48, "#ff3232");
+        drawText(`Final Distance: ${distance}m`, 400, 300, 24, "white");
+        drawText(`High Score: ${saveData.high_score}m`, 400, 330, 24, "#ffd700");
+        drawText("Tap JUMP to Restart | Tap MENU to exit", 400, 400, 18, "#aaaaaa");
+
+    } else if (state === "MENU") {
+        for (let p of particles) p.draw(ctx);
+        player.x = 400 - 15; player.y = 350; player.draw(ctx);
+
+        drawText("CRYSTAL JUMPER: WEB EDITION", 400, 100, 40, "#c8c8ff");
+        drawText("Tap JUMP/OK to Run", 400, 200, 24, "white");
+        drawText(`Gems: ${saveData.gems} | Shards: ${saveData.shards}`, 400, 300, 24, "#00ffc8");
+        drawText(`Equipped: ${player.skinName}`, 400, 460, 24, `rgb(${player.color.join(",")})`);
+        drawText(`Use On-Screen buttons to Navigate`, 400, 550, 18, "#aaaaaa");
+
+    } else if (state === "GACHA_MENU") {
+        drawText("GACHA TEMPLE", 400, 100, 48, "#ffd700");
+        drawText(`Cost: ${GACHA_COST} Gems | Wallet: ${saveData.gems} Gems`, 400, 180, 24, "#00ffc8");
+        drawText("Tap JUMP/OK to Pull", 400, 300, 24, "white");
+
+    } else if (state === "GACHA_ANIM") {
+        let pct = 1 - (gacha_timer / 180);
+        let tCol = gacha_target.color;
+        let r = 200 + (tCol[0]-200)*pct, g = 200 + (tCol[1]-200)*pct, b = 200 + (tCol[2]-200)*pct;
+        let rad = 20 + (pct * 40);
+        let sx = rand(-5,5)*pct, sy = rand(-5,5)*pct;
+        
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.beginPath(); ctx.arc(400+sx, 300+sy, rad, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(400+sx, 300+sy, rad/2, 0, Math.PI*2); ctx.fill();
+        drawText("SUMMONING...", 400, 100, 48, `rgb(${r},${g},${b})`);
+
+    } else if (state === "GACHA_RESULT") {
+        for (let p of particles) p.draw(ctx);
+        let col = RARITY_COLORS[gacha_target.rarity];
+        drawText(`PULLED: ${gacha_target.name}`, 400, 120, 48, col);
+        drawText(`Rarity: ${gacha_target.rarity}`, 400, 170, 24, col);
+        
+        preview.draw(ctx);
+
+        if (gacha_msg === "DUPLICATE") {
+            drawText("DUPLICATE DETECTED", 400, 380, 24, "#ff3232");
+            drawText(`Converted to +${shard_reward} Shards`, 400, 420, 24, "#ffd700");
+        } else { drawText("NEW SKIN UNLOCKED!", 400, 380, 24, "#00ffc8"); }
+        drawText("Tap JUMP/OK to Continue", 400, 500, 18, "#aaaaaa");
+    }
+}
+
+function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+gameLoop();
+</script>
+</body>
+</html>
