@@ -66,7 +66,7 @@
         @keyframes legendaryGlow { from { text-shadow: 0 0 5px #ff9f43; } to { text-shadow: 0 0 15px #ff9f43, 0 0 25px #ffce6b; } }
 
         .achieve-list { text-align: left; font-size: 14px; color: #bdc3c7; }
-        .achieve-list li { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .achieve-list li { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .achieve-done { color: #2ecc71; font-weight: bold; }
 
         @media (max-width: 800px) {
@@ -91,8 +91,12 @@
         <div class="main-column">
             <div id="mainMenu" class="panel">
                 <h2 id="playerName" style="color: #3498db; margin: 0;">PLAYER</h2>
-                <div style="font-size: 14px; color: #aaa;">High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold;">0</span></div>
                 
+                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; margin-top: 10px;">
+                    <div style="font-size: 14px; color: #aaa;">High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold; font-size: 18px;">0</span></div>
+                    <div style="font-size: 14px; color: #aaa; margin-top: 5px;">GamePoints: <span id="gpDisplay" style="color: #2ecc71; font-weight: bold; font-size: 18px;">0</span></div>
+                </div>
+
                 <hr style="width: 100%;">
                 
                 <button id="btnPlay" class="btn-play" onclick="window.toggleGame(true)">▶ NEW GAME</button>
@@ -129,7 +133,7 @@
         <div id="gameOverModal" class="modal-box" style="display: none;">
             <h2 style="color: #e74c3c;">SEQUENCE TERMINATED</h2>
             <h1 id="gameOverScoreDisplay" style="color: #f1c40f; font-size: 48px; margin: 10px 0;">0</h1>
-            <p style="color: #aaa; margin-bottom: 25px;">Final Score</p>
+            <p style="color: #aaa; margin-bottom: 25px;">Final Score Saved</p>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-achieve" onclick="window.exitToMenu()">Back to Menu</button>
                 <button class="btn-play" onclick="window.restartFromGameOver()" style="padding: 15px; margin-top: 0;">Play Again</button>
@@ -145,9 +149,16 @@
 
         <div id="gachaTempleModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2 style="color: #f1c40f;">Gacha Temple</h2>
-            <p>Spend 1 Data Pull to acquire a random skin.</p>
+            <h2 style="color: #f1c40f; margin-bottom: 5px;">Gacha Temple</h2>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px; margin-top: 15px;">
+                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">Your GamePoints: <span id="modalGpDisplay" style="color: #2ecc71; font-size: 18px; font-weight: bold;">0</span></div>
+                <button class="btn-play" style="padding: 10px; font-size: 14px;" onclick="window.exchangeGP()">Exchange 200 GP for 1 Pull</button>
+            </div>
+
+            <hr>
             <button class="btn-gacha" onclick="window.executeRoll('pull')">Rip Pack (Cost: 1 Pull)</button>
+            
             <div id="gachaResultArea" style="margin-top: 20px; display: none;">
                 <div id="gachaVisual" style="width: 60px; height: 60px; margin: 0 auto; border-radius: 8px;"></div>
                 <h3 id="gachaSkinName" style="margin: 10px 0;"></h3>
@@ -168,7 +179,7 @@
         <div id="achieveModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2>Achievements</h2>
-            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +1 Gacha Pull.</p>
+            <p style="font-size: 12px; color: #aaa;">Reach New High Score Milestones</p>
             <ul id="achievementList" class="achieve-list"></ul>
         </div>
     </div>
@@ -206,14 +217,13 @@ const firebaseConfig = {
                 
                 if (userSnap.exists()) {
                     let data = userSnap.data();
-                    if (!data.activeGame) {
-                        data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
-                    }
+                    if (!data.activeGame) data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
+                    if (data.gamePoints === undefined) data.gamePoints = 0; // Fix older accounts
                     return data;
                 }
                 
                 const newUser = { 
-                    username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
+                    username, highScore: 0, pulls: 1, shards: 0, gamePoints: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
                     activeGame: { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" }
                 };
                 await setDoc(userRef, newUser); return newUser;
@@ -259,6 +269,11 @@ const firebaseConfig = {
             const user = window.currentUser;
             document.getElementById('playerName').innerText = user.username.toUpperCase();
             document.getElementById('highScoreDisplay').innerText = user.highScore;
+            
+            // New GamePoints Variables Refreshed
+            document.getElementById('gpDisplay').innerText = user.gamePoints || 0;
+            document.getElementById('modalGpDisplay').innerText = user.gamePoints || 0;
+            
             document.getElementById('pullsDisplay').innerText = user.pulls;
             document.getElementById('shardsDisplay').innerText = user.shards;
             
@@ -289,13 +304,14 @@ const firebaseConfig = {
                 vault.appendChild(div);
             });
 
+            // Update Achievements to be High Score Milestones
             const achList = document.getElementById('achievementList');
             achList.innerHTML = '';
-            for(let i = 200; i <= 2000; i+=200) {
+            for(let i = 500; i <= 3000; i+=500) {
                 let li = document.createElement('li');
-                let done = user.achievements['score_' + i];
+                let done = user.highScore >= i;
                 li.className = done ? 'achieve-done' : '';
-                li.innerText = done ? `✔ Scored ${i} pts (+1 Pull)` : `🔒 Score ${i} pts`;
+                li.innerText = done ? `✔ Mastered ${i} points` : `🔒 Reach High Score: ${i}`;
                 achList.appendChild(li);
             }
 
@@ -321,10 +337,22 @@ const firebaseConfig = {
         }
         window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
 
+        // --- NEW EXCHANGE FUNCTION ---
+        window.exchangeGP = async function() {
+            let user = window.currentUser;
+            if ((user.gamePoints || 0) < 200) return alert("Not enough GamePoints! Keep playing matches to earn more.");
+            
+            user.gamePoints -= 200;
+            user.pulls += 1;
+            
+            await DB.saveUser(user); 
+            window.refreshMenuUI();
+        }
+
         window.executeRoll = async function(type) {
             let user = window.currentUser;
             if (type === 'pull') {
-                if (user.pulls < 1) return alert("Not enough pulls!");
+                if (user.pulls < 1) return alert("No Pull Tickets! Buy more with GamePoints.");
                 user.pulls -= 1;
             } else if (type === 'shard') {
                 if (user.shards < 100) return alert("Need 100 Shards!");
@@ -423,10 +451,8 @@ const firebaseConfig = {
             }
         }
 
-        // --- NEW MODAL ROUTING FUNCTIONS ---
         window.exitToMenu = function() {
             window.closeModal();
-            // Wipe the local board so New Game works later
             board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
             score = 0;
             refillTray();
@@ -435,7 +461,6 @@ const firebaseConfig = {
 
         window.restartFromGameOver = function() {
             window.closeModal();
-            // Wipe the board and immediately restart
             board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
             score = 0;
             refillTray();
@@ -462,14 +487,18 @@ const firebaseConfig = {
             }
         }
 
+        // --- UPDATED ADDSCORE FUNCTION ---
         async function addScore(points) {
-            score += points; document.getElementById('currentScoreDisplay').innerText = score;
-            let user = window.currentUser; let milestones = Math.floor(score / 200);
-            if (user.achievements['score_' + milestones * 200] === undefined && score >= 200) {
-                user.pulls += 1; user.achievements['score_' + milestones * 200] = true;
-            }
+            score += points; 
+            document.getElementById('currentScoreDisplay').innerText = score;
+            
+            let user = window.currentUser; 
+            
+            // Add points to Global GamePoints Wallet instantly
+            user.gamePoints = (user.gamePoints || 0) + points;
+
             if (score > user.highScore) user.highScore = score;
-            syncCloudSave();
+            syncCloudSave(); // Saves the game state AND the newly added GamePoints simultaneously
             
             if(score === user.highScore) window.refreshMenuUI();
         }
@@ -563,15 +592,13 @@ const firebaseConfig = {
 
                 if (isGameOver()) {
                     setTimeout(() => {
-                        // FIX: Show Game Over Modal instead of Alert
                         document.getElementById('modalOverlay').style.display = 'flex';
                         document.getElementById('gameOverModal').style.display = 'block';
                         document.getElementById('gameOverScoreDisplay').innerText = score;
                         
-                        // Wipe the cloud save properly so "New Game" works cleanly if they exit
                         window.currentUser.activeGame.inProgress = false;
                         syncCloudSave(); 
-                    }, 300); // 300ms delay so they can see their final placed piece
+                    }, 300); 
                 }
             }
             isDragging = false; draggedIndex = -1; 
