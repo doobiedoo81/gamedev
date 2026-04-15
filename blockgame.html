@@ -52,6 +52,15 @@
         .score-box { background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 20px; color: #f1c40f; }
         .pause-btn { width: auto; padding: 10px 20px; margin: 0; background: rgba(255,255,255,0.1); font-size: 14px; }
 
+        #toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, #f1c40f, #e67e22); color: #2c3e50;
+            padding: 12px 25px; border-radius: 30px; font-weight: 800; font-size: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: #1e1e24; border: 1px solid rgba(255,255,255,0.2); padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; box-sizing: border-box; max-height: 80vh; overflow-y: auto;}
         .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; font-weight: bold; }
@@ -77,6 +86,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast">Achievement Unlocked!</div>
 
     <h1>CLOUD LEGENDS</h1>
     
@@ -178,9 +189,10 @@
 
         <div id="achieveModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2>Achievements</h2>
-            <p style="font-size: 12px; color: #aaa;">Reach New High Score Milestones</p>
-            <ul id="achievementList" class="achieve-list"></ul>
+            <h2>Achievements & Rules</h2>
+            <p style="font-size: 14px; color: #2ecc71; font-weight: bold;">🔥 LIFETIME RULE: Break a new 200-point High Score milestone = +5 Pulls!</p>
+            
+            <ul id="achievementList" class="achieve-list" style="margin-top: 15px;"></ul>
         </div>
     </div>
 
@@ -218,7 +230,7 @@ const firebaseConfig = {
                 if (userSnap.exists()) {
                     let data = userSnap.data();
                     if (!data.activeGame) data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
-                    if (data.gamePoints === undefined) data.gamePoints = 0; // Fix older accounts
+                    if (data.gamePoints === undefined) data.gamePoints = 0; 
                     return data;
                 }
                 
@@ -270,7 +282,6 @@ const firebaseConfig = {
             document.getElementById('playerName').innerText = user.username.toUpperCase();
             document.getElementById('highScoreDisplay').innerText = user.highScore;
             
-            // New GamePoints Variables Refreshed
             document.getElementById('gpDisplay').innerText = user.gamePoints || 0;
             document.getElementById('modalGpDisplay').innerText = user.gamePoints || 0;
             
@@ -304,14 +315,18 @@ const firebaseConfig = {
                 vault.appendChild(div);
             });
 
-            // Update Achievements to be High Score Milestones
+            // Dynamically generate Lifetime Milestones (every 200 points)
             const achList = document.getElementById('achievementList');
             achList.innerHTML = '';
-            for(let i = 500; i <= 3000; i+=500) {
+            
+            let highestDisplay = Math.floor((user.highScore || 0) / 200) * 200 + 600;
+            if (highestDisplay < 800) highestDisplay = 800; 
+
+            for(let i = 200; i <= highestDisplay; i+=200) {
                 let li = document.createElement('li');
-                let done = user.highScore >= i;
+                let done = user.achievements['score_' + i];
                 li.className = done ? 'achieve-done' : '';
-                li.innerText = done ? `✔ Mastered ${i} points` : `🔒 Reach High Score: ${i}`;
+                li.innerText = done ? `✔ Lifetime Score: ${i} (+5 Pulls Claimed)` : `🔒 Reach High Score: ${i}`;
                 achList.appendChild(li);
             }
 
@@ -337,7 +352,13 @@ const firebaseConfig = {
         }
         window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
 
-        // --- NEW EXCHANGE FUNCTION ---
+        window.showToast = function(message) {
+            let toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.top = '20px';
+            setTimeout(() => { toast.style.top = '-100px'; }, 3500);
+        }
+
         window.exchangeGP = async function() {
             let user = window.currentUser;
             if ((user.gamePoints || 0) < 200) return alert("Not enough GamePoints! Keep playing matches to earn more.");
@@ -421,7 +442,13 @@ const firebaseConfig = {
                     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
                     score = 0;
                     refillTray();
-                    window.currentUser.activeGame.inProgress = true;
+                    
+                    window.currentUser.activeGame = {
+                        inProgress: true,
+                        score: 0,
+                        boardStr: JSON.stringify(board),
+                        trayStr: JSON.stringify(trayShapes)
+                    };
                     syncCloudSave();
                 }
                 
@@ -464,7 +491,13 @@ const firebaseConfig = {
             board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
             score = 0;
             refillTray();
-            window.currentUser.activeGame.inProgress = true;
+            
+            window.currentUser.activeGame = {
+                inProgress: true,
+                score: 0,
+                boardStr: JSON.stringify(board),
+                trayStr: JSON.stringify(trayShapes)
+            };
             syncCloudSave();
             document.getElementById('currentScoreDisplay').innerText = score;
         };
@@ -487,18 +520,33 @@ const firebaseConfig = {
             }
         }
 
-        // --- UPDATED ADDSCORE FUNCTION ---
+        // --- LIFETIME MILESTONE LOGIC ---
         async function addScore(points) {
             score += points; 
             document.getElementById('currentScoreDisplay').innerText = score;
             
             let user = window.currentUser; 
-            
-            // Add points to Global GamePoints Wallet instantly
             user.gamePoints = (user.gamePoints || 0) + points;
 
+            // Check ALL milestones up to the current score
+            let maxMilestone = Math.floor(score / 200) * 200;
+            let pullsGained = 0;
+            
+            for (let m = 200; m <= maxMilestone; m += 200) {
+                if (!user.achievements['score_' + m]) {
+                    user.achievements['score_' + m] = true;
+                    user.pulls += 5;
+                    pullsGained += 5;
+                }
+            }
+
+            if (pullsGained > 0) {
+                window.showToast(`Lifetime Record: ${maxMilestone} pts! +${pullsGained} Pulls!`);
+                window.refreshMenuUI();
+            }
+
             if (score > user.highScore) user.highScore = score;
-            syncCloudSave(); // Saves the game state AND the newly added GamePoints simultaneously
+            syncCloudSave(); 
             
             if(score === user.highScore) window.refreshMenuUI();
         }
