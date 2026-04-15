@@ -389,6 +389,11 @@ const firebaseConfig = {
                 document.getElementById('mainMenu').style.display = 'none';
                 document.getElementById('gameUI').style.display = 'flex';
                 
+                // FIX: If this is an older account without a save file, build one so it doesn't crash
+                if (!window.currentUser.activeGame) {
+                    window.currentUser.activeGame = { inProgress: false };
+                }
+                
                 if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
                     board = window.currentUser.activeGame.board;
                     score = window.currentUser.activeGame.score;
@@ -418,7 +423,6 @@ const firebaseConfig = {
                 window.refreshMenuUI();
             }
         }
-
         window.restartGame = function() {
             if(confirm("Are you sure? Current progress will be lost.")) {
                 window.currentUser.activeGame.inProgress = false;
