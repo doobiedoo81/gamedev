@@ -209,7 +209,6 @@ const firebaseConfig = {
                 
                 const newUser = { 
                     username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
-                    // FIX: Use strings for the nested arrays
                     activeGame: { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" }
                 };
                 await setDoc(userRef, newUser); return newUser;
@@ -383,18 +382,18 @@ const firebaseConfig = {
             [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,1,0]], [[1,1],[0,1],[0,1]]
         ];
 
-        /// START OR PAUSE
+        // START OR PAUSE
         window.toggleGame = function(starting) {
             if (starting) {
                 document.getElementById('mainMenu').style.display = 'none';
                 document.getElementById('gameUI').style.display = 'flex';
                 
+                // Ensure backward compatibility for users without an activeGame state yet
                 if (!window.currentUser.activeGame) {
                     window.currentUser.activeGame = { inProgress: false };
                 }
                 
                 if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
-                    // FIX: Parse the JSON strings back into arrays
                     board = JSON.parse(window.currentUser.activeGame.boardStr);
                     score = window.currentUser.activeGame.score;
                     trayShapes = JSON.parse(window.currentUser.activeGame.trayStr);
@@ -423,7 +422,7 @@ const firebaseConfig = {
                 window.refreshMenuUI();
             }
         }
-        }
+
         window.restartGame = function() {
             if(confirm("Are you sure? Current progress will be lost.")) {
                 window.currentUser.activeGame.inProgress = false;
@@ -434,7 +433,6 @@ const firebaseConfig = {
 
         function syncCloudSave() {
             let user = window.currentUser;
-            // FIX: Convert the 2D arrays to JSON strings to bypass Firebase nested array limits
             user.activeGame = { 
                 inProgress: true, 
                 score: score, 
@@ -443,6 +441,7 @@ const firebaseConfig = {
             };
             DB.saveUser(user);
         }
+
         function refillTray() {
             trayShapes = [];
             for (let i = 0; i < 3; i++) trayShapes.push({ matrix: SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], used: false });
@@ -457,9 +456,8 @@ const firebaseConfig = {
             if (score > user.highScore) user.highScore = score;
             syncCloudSave();
             
-            // Periodically refresh the leaderboard if we hit a new high score
             if(score === user.highScore) {
-                window.refreshMenuUI(); // Updates the permanent panel in real-time
+                window.refreshMenuUI();
             }
         }
 
