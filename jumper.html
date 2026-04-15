@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Ultimate VFX Edition</title>
+    <title>Crystal Jumper: Perfect Hitbox Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -60,7 +60,6 @@ const firebaseConfig = {
   appId: "1:852548137714:web:8005960f02970829b8966b",
   measurementId: "G-5WK2XBQTBV"
 };
-
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -122,12 +121,11 @@ function drawButton(x, y, w, h, text, col1, col2, txtCol="white", txtSize=20, gl
     ctx.fillStyle = grad; 
     if (glow) { ctx.shadowColor = col2; ctx.shadowBlur = 15; }
     ctx.beginPath(); ctx.roundRect(x,y,w,h, 8); ctx.fill();
-    ctx.shadowBlur = 0; // Reset
+    ctx.shadowBlur = 0; 
     ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1; ctx.stroke();
     drawText(text, x+w/2, y+h/2+txtSize*0.35, txtSize, txtCol);
 }
 
-// Custom UI Panel Drawer
 function drawPanel(x, y, w, h, title="") {
     ctx.fillStyle = "rgba(15, 15, 20, 0.85)"; ctx.beginPath(); ctx.roundRect(x,y,w,h, 12); ctx.fill();
     ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"; ctx.lineWidth = 2; ctx.stroke();
@@ -181,7 +179,6 @@ class Particle {
         this.x=x; this.y=y; this.color=color; this.type=type; this.life=255; this.size=rand(3,6);
         this.dx=(Math.random()-0.5)*4; this.dy=(Math.random()-0.5)*4;
         
-        // Behaviors based on string type
         switch(type) {
             case "fire": this.dy=rand(-6,-2); this.dx=rand(-2,2); this.size=rand(4,9); break;
             case "dragon": this.dx=rand(-8,-3); this.dy=rand(-1,1); this.size=10; break;
@@ -204,13 +201,12 @@ class Particle {
     }
     update() {
         this.x+=this.dx; this.y+=this.dy;
-        
         switch(this.type) {
             case "fire": case "dragon": case "solar": this.life-=10; this.size=Math.max(0.1,this.size-0.1); break;
             case "bubble": case "leaf": case "snow": this.life-=8; this.x+=Math.sin(frames*0.1)*2; break;
-            case "slime": this.life-=12; this.dy+=0.2; break; // Gravity
-            case "ghost": this.life-=6; this.size+=0.1; break; // Expands
-            case "void": this.life-=15; this.size=Math.max(0.1,this.size-0.5); break; // Implodes
+            case "slime": this.life-=12; this.dy+=0.2; break;
+            case "ghost": this.life-=6; this.size+=0.1; break; 
+            case "void": this.life-=15; this.size=Math.max(0.1,this.size-0.5); break; 
             case "wave": this.radius+=8; this.life-=12; break;
             case "star": this.life-=6; this.size=Math.max(0.1,this.size-0.1); break;
             case "plasma": this.life-=20; break;
@@ -229,7 +225,7 @@ class Particle {
             ctx.beginPath(); ctx.moveTo(this.x, this.y-this.size); ctx.lineTo(this.x+this.size/3, this.y-this.size/3); ctx.lineTo(this.x+this.size, this.y); ctx.lineTo(this.x+this.size/3, this.y+this.size/3); ctx.lineTo(this.x, this.y+this.size); ctx.lineTo(this.x-this.size/3, this.y+this.size/3); ctx.lineTo(this.x-this.size, this.y); ctx.lineTo(this.x-this.size/3, this.y-this.size/3); ctx.fill();
         } else if (this.type==="plasma") {
             ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
-            ctx.fillRect(this.x, this.y, this.size*4, this.size); // Line sparks
+            ctx.fillRect(this.x, this.y, this.size*4, this.size);
         } else {
             ctx.fillStyle=`rgba(${this.color[0]},${this.color[1]},${this.color[2]},${this.life/255})`;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
@@ -240,7 +236,14 @@ class Particle {
 // Entities
 class RectEntity { constructor(x,y,w,h){this.x=x;this.y=y;this.w=w;this.h=h;this.active=true;} }
 class Gem extends RectEntity { constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} draw(ctx){ if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; ctx.fillStyle="#00ffc8"; ctx.beginPath(); ctx.arc(this.x+10,dy,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10,dy,5,0,Math.PI*2); ctx.fill(); } }
-class ShardDrop extends RectEntity { constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} draw(ctx){ if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; ctx.fillStyle="#c832ff"; ctx.beginPath(); ctx.moveTo(this.x+10, dy-10); ctx.lineTo(this.x+20, dy); ctx.lineTo(this.x+10, dy+10); ctx.lineTo(this.x, dy); ctx.fill(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10, dy, 3, 0, Math.PI*2); ctx.fill(); } }
+class ShardDrop extends RectEntity { 
+    constructor(x,y){super(x,y,20,20);this.pulse=rand(0,6);} 
+    draw(ctx){ 
+        if(!this.active)return; this.pulse+=0.1; let dy=this.y+10+Math.sin(this.pulse)*5; 
+        ctx.fillStyle="#c832ff"; ctx.beginPath(); ctx.moveTo(this.x+10, dy-10); ctx.lineTo(this.x+20, dy); ctx.lineTo(this.x+10, dy+10); ctx.lineTo(this.x, dy); ctx.fill(); 
+        ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+10, dy, 3, 0, Math.PI*2); ctx.fill();
+    } 
+}
 class Hazard extends RectEntity { constructor(x,y){super(x,y-30,30,30);} draw(ctx){ if(!this.active)return; ctx.fillStyle="#ff2020"; ctx.beginPath(); ctx.moveTo(this.x,this.y+30); ctx.lineTo(this.x+30,this.y+30); ctx.lineTo(this.x+15,this.y); ctx.fill(); } }
 class JumpPad extends RectEntity { draw(ctx){ ctx.fillStyle="#32ff64"; ctx.fillRect(this.x,this.y,40,10); } }
 
@@ -263,6 +266,90 @@ class PowerUp extends RectEntity {
     }
 }
 
+// --- THE HOLLOW KNIGHT MODEL GENERATOR ---
+function drawKnightModel(ctx, cx, cy, skin, isMoving, frames, pState) {
+    let rarity = skin.rarity; let c = skin.color;
+    let runBounce = isMoving ? Math.sin(frames * 0.6) * 3 : 0;
+    let cloakSway = isMoving ? Math.cos(frames * 0.6) * 6 : 0;
+    let jetLean = (pState && pState.jetpack > 0) ? 10 : 0;
+    cy += runBounce; cx += jetLean;
+
+    if (pState && pState.demon > 0) {
+        ctx.fillStyle = skin.name==="DRAGON WARRIOR" ? "#ffd700" : "#ff00ff";
+        let wingFlap = Math.sin(frames*0.4)*15;
+        ctx.beginPath(); ctx.moveTo(cx, cy+10); ctx.lineTo(cx-40, cy-20+wingFlap); ctx.lineTo(cx-10, cy+30); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(cx, cy+10); ctx.lineTo(cx+40, cy-20+wingFlap); ctx.lineTo(cx+10, cy+30); ctx.fill();
+    }
+
+    if (rarity === "Epic" || rarity === "Legendary") {
+        let acolor = skin.name==="GALAXY"?[100,0,200]:skin.name==="ABYSSAL"?[0,150,150]:skin.name==="DRAGON WARRIOR"?[200,180,50]:skin.color;
+        let intensity = rarity==="Epic" ? 15 : 30; let glow = Math.abs(Math.sin(frames*0.1)) * (rarity==="Epic"?10:25);
+        let rad = intensity + glow;
+        let grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        grad.addColorStop(0, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0.8)`);
+        grad.addColorStop(1, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0)`);
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.strokeStyle = "#c8c8c8"; ctx.lineWidth = 3;
+    let legSw = isMoving && (!pState || pState.jetpack<=0) ? Math.sin(frames * 0.8) * 8 : 0;
+    let lcy = cy + 18 - jetLean;
+    ctx.beginPath(); ctx.moveTo(cx - 5, lcy); ctx.lineTo(cx - 5 + legSw, lcy + 10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 5, lcy); ctx.lineTo(cx + 5 - legSw, lcy + 10); ctx.stroke();
+
+    let maskColor = (skin.name === "Void" || skin.name === "ABYSSAL") ? "#222" : (skin.name === "DRAGON WARRIOR") ? "#ffd700" : "#f5f5fa";
+    ctx.fillStyle = maskColor; ctx.strokeStyle = "#141419"; ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    if (rarity === "Starter" || rarity === "Common") {
+        ctx.moveTo(cx-6, cy-12); ctx.lineTo(cx-10, cy-22); ctx.lineTo(cx-2, cy-15); 
+        ctx.moveTo(cx+6, cy-12); ctx.lineTo(cx+10, cy-22); ctx.lineTo(cx+2, cy-15);
+    } else if (rarity === "Rare") {
+        ctx.moveTo(cx-6, cy-12); ctx.quadraticCurveTo(cx-18, cy-30, cx-2, cy-28); ctx.lineTo(cx-3, cy-15); 
+        ctx.moveTo(cx+6, cy-12); ctx.quadraticCurveTo(cx+18, cy-30, cx+2, cy-28); ctx.lineTo(cx+3, cy-15);
+    } else if (rarity === "Epic") {
+        ctx.moveTo(cx-5, cy-12); ctx.quadraticCurveTo(cx-25, cy-35, cx-30, cy-15); ctx.lineTo(cx-2, cy-15); 
+        ctx.moveTo(cx+5, cy-12); ctx.quadraticCurveTo(cx+25, cy-35, cx+30, cy-15); ctx.lineTo(cx+2, cy-15); 
+    } else if (rarity === "Legendary") {
+        ctx.moveTo(cx-6, cy-12); ctx.lineTo(cx-20, cy-30); ctx.lineTo(cx-10, cy-20); ctx.lineTo(cx-5, cy-35); ctx.lineTo(cx, cy-15); 
+        ctx.moveTo(cx+6, cy-12); ctx.lineTo(cx+20, cy-30); ctx.lineTo(cx+10, cy-20); ctx.lineTo(cx+5, cy-35); ctx.lineTo(cx, cy-15);
+    }
+    ctx.fill(); ctx.stroke();
+
+    ctx.beginPath(); ctx.moveTo(cx, cy - 5); ctx.lineTo(cx - 15 + cloakSway, cy + 18); ctx.lineTo(cx + 15, cy + 15); ctx.closePath();
+    ctx.save(); ctx.clip();
+    
+    if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
+    if (skin.name === "Slime") { ctx.fillStyle=`rgb(${c})`; ctx.fillRect(cx-20, cy-10+Math.sin(frames*0.2)*3, 40, 40); }
+    else { ctx.fillStyle=`rgb(${c})`; ctx.fill(); }
+
+    if (rarity === "Legendary") {
+        if (skin.name === "INFERNO" || skin.name === "DRAGON WARRIOR") {
+            let yOff = (frames * 2) % 20; ctx.fillStyle = skin.name==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 255, 255, 0.4)";
+            ctx.beginPath(); ctx.moveTo(cx-10, cy+30-yOff); ctx.lineTo(cx, cy+15-yOff); ctx.lineTo(cx+10, cy+30-yOff); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx-15, cy+40-yOff); ctx.lineTo(cx-5, cy+25-yOff); ctx.lineTo(cx+5, cy+40-yOff); ctx.fill();
+        } else if (skin.name === "GALAXY") {
+            let yOff = (frames * 0.5) % 20; ctx.fillStyle = "white";
+            ctx.fillRect(cx-5, cy+10+yOff, 2, 2); ctx.fillRect(cx+8, cy+20+yOff, 2, 2); ctx.fillRect(cx-10, cy+30+yOff, 2, 2);
+        } else if (skin.name === "ABYSSAL") {
+            if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, cy+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, cy+25+rand(-5,5), 40, 2); }
+        }
+    }
+    ctx.restore(); ctx.stroke();
+
+    ctx.fillStyle = maskColor; ctx.beginPath(); ctx.arc(cx, cy - 8, 11, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+    let eyeCol = (skin.name === "Neon") ? "#00ffff" : (skin.name === "INFERNO") ? "#ff6400" : "#0a0a10";
+    ctx.fillStyle = eyeCol; let eyeLookX = (isMoving && (!pState || pState.jetpack<=0)) ? 2 : 0; 
+    ctx.beginPath(); ctx.ellipse(cx-4+eyeLookX, cy-7, 3, 5, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+4+eyeLookX, cy-7, 3, 5, 0.2, 0, Math.PI*2); ctx.fill();
+
+    if (pState) {
+        if (pState.shield) { ctx.strokeStyle = skin.name==="DRAGON WARRIOR" ? "#ffd700" : "#32ff64"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, cy, 35+Math.sin(frames*0.1)*5, 0, Math.PI*2); ctx.stroke(); }
+        if (pState.angel) { ctx.strokeStyle = "#ffd700"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(cx, cy-25+Math.sin(frames*0.1)*3, 12, 4, 0, 0, Math.PI*2); ctx.stroke(); }
+    }
+}
+
 class Player {
     constructor() { 
         this.x=150; this.y=300; this.w=30; this.h=40; this.vy=0; this.gravity=0.65; this.jumpPower=-13; this.onGround=false; this.trail=[]; 
@@ -273,8 +360,6 @@ class Player {
         if(!saveData) return; let id=fId!==null?fId:saveData.equipped_id; let s=SKINS.find(x=>x.id===id);
         this.skinName=s.name; this.color=s.color; this.rarity=s.rarity;
     }
-    
-    // --- 20 UNIQUE JUMP VFX ---
     jump(superJump=false) {
         if(!this.onGround && !superJump) return;
         this.vy = superJump?-18:this.jumpPower; this.onGround=false;
@@ -288,30 +373,25 @@ class Player {
             case "Sakura": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [255,180,200], "leaf")); break;
             case "Slime": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [100,255,50], "slime")); break;
             case "Ash": for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [80,80,80], "ash")); break;
-            
             case "Amethyst": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [150,50,255], "sparkle")); break;
             case "Glacier": for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [150,255,255], "snow")); break;
             case "Toxic": for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [180,255,0], "toxic")); break;
-            
             case "Bloodmoon": particles.push(new Particle(cx, cy, [200,30,30], "wave")); for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [200,30,30], "blood")); break;
             case "Neon": particles.push(new Particle(cx, cy, [0,255,255], "dash")); particles.push(new Particle(cx, cy, [255,0,255], "dash")); break;
             case "Phantom": for(let i=0;i<6;i++) particles.push(new Particle(cx, cy, [200,220,255], "ghost")); break;
             case "Plasma": for(let i=0;i<15;i++) particles.push(new Particle(cx, cy, [255,50,150], "plasma")); break;
             case "Solar": particles.push(new Particle(cx, cy, [255,150,0], "wave")); for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [255,150,0], "solar")); break;
             case "Void": particles.push(new Particle(cx, cy, [40,0,60], "void")); break;
-            
             case "INFERNO": particles.push(new Particle(cx, cy, [255,50,0], "wave")); for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [255,100,0], "fire")); break;
             case "GALAXY": particles.push(new Particle(cx, cy, [200,100,255], "wave")); for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [200,100,255], "star")); break;
             case "ABYSSAL": particles.push(new Particle(cx, cy, [0,255,255], "wave")); particles.push(new Particle(cx, cy, [255,0,255], "wave")); break;
             case "DRAGON WARRIOR": particles.push(new Particle(cx, cy, [255,215,0], "wave")); for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [255,215,0], "fire")); break;
         }
     }
-
     update() {
         let vx = game_speed;
         if(this.iframes > 0) this.iframes--;
 
-        // Demon Wings
         if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
             if (isPointerDown) {
@@ -320,7 +400,6 @@ class Player {
             } else this.vy += this.gravity * 0.5; 
         }
 
-        // Jetpack
         if(this.jetpack>0){ 
             this.jetpack--; vx=18; this.y += (150 - this.y) * 0.1; this.vy = 0; this.magnet = Math.max(this.magnet, 5); 
             
@@ -339,18 +418,18 @@ class Player {
         } else if (this.demon <= 0) this.vy += this.gravity;
 
         this.x+=vx; this.y+=this.vy; this.onGround=false; 
-        for(let p of platforms) if(AABB(this,p)){ if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } }
+        for(let p of platforms) if(AABB(this,p)){ 
+            if(this.vy>0 && this.y+this.h - this.vy <= p.y + 10){ this.y=p.y-this.h; this.vy=0; this.onGround=true; } 
+        }
 
         for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
         
-        // Power Up Logic
         for(let i of items) if(i.active && AABB(this,i)){ 
             i.active=false;
             if(i.pType===0) this.jetpack=300; else if(i.pType===1) this.magnet=600; else if(i.pType===2) this.shield=true; else if(i.pType===3) this.angel=true; else if(i.pType===4) this.demon=600; 
             for(let k=0;k<20;k++) particles.push(new Particle(this.x+15, this.y+20, [255,255,255], "sparkle")); 
         }
 
-        // Magnet Logic
         if (this.magnet > 0) {
             this.magnet--;
             if (this.skinName === "DRAGON WARRIOR" && frames%5===0) particles.push(new Particle(this.x+15, this.y+20, [255,215,0], "wave"));
@@ -358,7 +437,6 @@ class Player {
             gems.forEach(pull); collect_shards.forEach(pull);
         }
 
-        // Death / Shield / Angel
         let dead = this.y > 650;
         if (this.iframes <= 0 && this.jetpack <= 0) {
             for (let h of hazards) if (h.active && AABB(this, h)) {
@@ -384,9 +462,8 @@ class Player {
 
         this.trail.push({x:this.x+this.w/2, y:this.y+this.h/2}); if(this.trail.length>12) this.trail.shift();
         
-        // --- 20 UNIQUE PASSIVE VFX (Running) ---
         if(this.onGround && this.jetpack<=0 && Math.random()<0.3){ 
-            let cx=this.x; let cy=this.y+this.h;
+            let cx=this.x+15; let cy=this.y+this.h;
             switch(this.skinName) {
                 case "Forest": particles.push(new Particle(cx, cy, [50,200,50], "leaf")); break;
                 case "Sand": particles.push(new Particle(cx, cy, [210,180,140], "dust")); break;
@@ -399,7 +476,6 @@ class Player {
             }
         }
         
-        // Always-on Ambient VFX
         if (Math.random() < 0.2) {
             let cx = this.x+15; let cy = this.y+20;
             switch(this.skinName) {
@@ -419,127 +495,8 @@ class Player {
     
     draw(ctx) {
         if (this.iframes > 0 && frames % 4 < 2) return; 
-        let cx=this.x+this.w/2; let cy=this.y+this.h/2;
-
-        // Demon Wings Back Layer
-        if (this.demon > 0) {
-            ctx.fillStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#ff00ff";
-            ctx.beginPath(); ctx.moveTo(cx, this.y+10); ctx.lineTo(cx-40, this.y-20+Math.sin(frames*0.3)*20); ctx.lineTo(cx-10, this.y+30); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(cx, this.y+10); ctx.lineTo(cx+40, this.y-20+Math.sin(frames*0.3)*20); ctx.lineTo(cx+10, this.y+30); ctx.fill();
-        }
-
-        // --- 20 UNIQUE TRAILS ---
-        if(this.rarity === "Epic" || this.rarity === "Legendary"){
-            for(let i=0;i<this.trail.length;i++){
-                let t=this.trail[i]; let s=12*(i/this.trail.length); let p = i/this.trail.length;
-                let col = `rgba(${this.color[0]},${this.color[1]},${this.color[2]},${p})`;
-                
-                if (this.skinName==="GALAXY") col = `rgba(200,0,255,${p})`;
-                else if (this.skinName==="ABYSSAL") col = `rgba(0,255,255,${p})`;
-                else if (this.skinName==="CHRONO" || this.skinName==="DRAGON WARRIOR") col = `rgba(255,215,0,${p})`;
-                else if (this.skinName==="Neon") col = (i%2===0) ? `rgba(0,255,255,${p})` : `rgba(255,0,255,${p})`;
-                else if (this.skinName==="Phantom") col = `rgba(200,220,255,${p*0.5})`; // Softer trail
-                else if (this.skinName==="Void") col = `rgba(40,0,60,${p})`;
-                
-                ctx.fillStyle=col; ctx.beginPath(); ctx.arc(t.x, t.y, s, 0, Math.PI*2); ctx.fill();
-            }
-        }
-
-        if(this.jetpack>0){ 
-            if (this.skinName==="DRAGON WARRIOR") {
-                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(cx+20, this.y+10); ctx.lineTo(cx+45, this.y+20); ctx.lineTo(cx+20, this.y+30); ctx.fill();
-            } else {
-                ctx.strokeStyle="#ff6400"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, cy, 35, 0, Math.PI*2); ctx.stroke(); 
-            }
-        }
-        
-        // Auras
-        if (this.rarity === "Epic" || this.rarity === "Legendary") {
-            let acolor = this.skinName==="GALAXY"?[100,0,200]:this.skinName==="ABYSSAL"?[0,150,150]:this.skinName==="DRAGON WARRIOR"?[200,180,50]:this.color;
-            let intensity = this.rarity==="Epic" ? 15 : 30; let glow = Math.abs(Math.sin(Date.now()/150)) * (this.rarity==="Epic"?20:40);
-            let rad = intensity + (glow/5);
-            let grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-            grad.addColorStop(0, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0.8)`);
-            grad.addColorStop(1, `rgba(${acolor[0]},${acolor[1]},${acolor[2]}, 0)`);
-            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI*2); ctx.fill();
-        }
-
-        // Draw Player Body Mask
-        ctx.beginPath(); ctx.moveTo(cx, this.y+15); ctx.lineTo(cx-16, this.y+this.h-8); ctx.lineTo(cx+16, this.y+this.h-8); ctx.closePath();
-        ctx.save(); ctx.clip();
-
-        if (this.skinName === "Phantom") ctx.globalAlpha = 0.6;
-        if (this.skinName === "Slime") { ctx.fillStyle=`rgb(${this.color})`; ctx.fillRect(cx-16, this.y+15+Math.sin(frames*0.2)*3, 32, 30); } // Jiggly body
-        else { ctx.fillStyle=`rgb(${this.color})`; ctx.fill(); }
-
-        // --- LEGENDARY ANIMATED CLOAKS ---
-        if (this.rarity === "Legendary") {
-            if (this.skinName === "INFERNO" || this.skinName === "DRAGON WARRIOR") {
-                let yOff = (frames * 2) % 20; ctx.fillStyle = this.skinName==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 255, 255, 0.4)";
-                ctx.beginPath(); ctx.moveTo(cx-10, this.y+30-yOff); ctx.lineTo(cx, this.y+15-yOff); ctx.lineTo(cx+10, this.y+30-yOff); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(cx-15, this.y+40-yOff); ctx.lineTo(cx-5, this.y+25-yOff); ctx.lineTo(cx+5, this.y+40-yOff); ctx.fill();
-            } else if (this.skinName === "GALAXY") {
-                let yOff = (frames * 0.5) % 20; ctx.fillStyle = "white";
-                ctx.fillRect(cx-5, this.y+10+yOff, 2, 2); ctx.fillRect(cx+8, this.y+20+yOff, 2, 2); ctx.fillRect(cx-10, this.y+30+yOff, 2, 2);
-                ctx.fillRect(cx-5, this.y-10+yOff, 2, 2); ctx.fillRect(cx+8, this.y+yOff, 2, 2); ctx.fillRect(cx-10, this.y+10+yOff, 2, 2);
-            } else if (this.skinName === "ABYSSAL") {
-                if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(cx-20, this.y+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(cx-20, this.y+25+rand(-5,5), 40, 2); }
-            }
-        }
-        ctx.restore(); 
-        
-        ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
-
-        ctx.fillStyle="#f5f5fa"; ctx.beginPath(); ctx.ellipse(cx, this.y+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#141419"; ctx.lineWidth=2; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx-8, this.y+14); ctx.lineTo(cx-12, this.y+4); ctx.lineTo(cx-4, this.y+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(cx+8, this.y+14); ctx.lineTo(cx+12, this.y+4); ctx.lineTo(cx+4, this.y+10); ctx.fill();
-        
-        let eCol = (this.skinName==="INFERNO"||this.skinName==="DRAGON WARRIOR")?"#ff6400":this.skinName==="ABYSSAL"?"#00ffff":this.skinName==="Void"?"#ff00ff":this.skinName==="Toxic"?"#00ff00":"#141419";
-        ctx.fillStyle=eCol; ctx.beginPath(); ctx.ellipse(cx, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(cx+6, this.y+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); 
-
-        if (this.shield) { ctx.strokeStyle = this.skinName==="DRAGON WARRIOR" ? "#ffd700" : "#32ff64"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx, cy, 40+Math.sin(frames*0.1)*5, 0, Math.PI*2); ctx.stroke(); }
-        if (this.angel) { ctx.strokeStyle = "#ffd700"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(cx, this.y-10+Math.sin(frames*0.1)*5, 15, 5, 0, 0, Math.PI*2); ctx.stroke(); }
+        drawKnightModel(ctx, this.x+15, this.y+20, this, true, frames, this);
     }
-}
-
-function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
-    ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
-    let bottom = 20, top = -20;
-    if (!isUnlocked) {
-        ctx.fillStyle = "#1a1a24"; ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.fill();
-        ctx.fillStyle = "#202030"; ctx.beginPath(); ctx.ellipse(0, top+10, 12, 10, 0, 0, Math.PI*2); ctx.fill();
-        drawText("?", 0, top+16, 20, "#505064"); drawText("LOCKED", 0, bottom+15, 12, "#505064"); ctx.restore(); return;
-    }
-    let c = skin.color;
-    
-    if (skin.rarity === "Legendary" || skin.rarity === "Epic") {
-        let grad = ctx.createRadialGradient(0, 0, 0, 0, 35);
-        grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]}, ${skin.rarity==="Legendary"?0.5:0.2})`);
-        grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]}, 0)`);
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill();
-    }
-    
-    ctx.beginPath(); ctx.moveTo(0, top+15); ctx.lineTo(-16, bottom-8); ctx.lineTo(16, bottom-8); ctx.closePath(); ctx.save(); ctx.clip();
-    if (skin.name === "Phantom") ctx.globalAlpha = 0.6;
-    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill();
-    
-    if (skin.rarity === "Legendary") {
-        if (skin.name === "INFERNO" || skin.name === "DRAGON WARRIOR") {
-            let yOff = (frames * 2) % 20; ctx.fillStyle = skin.name==="INFERNO"?"rgba(255, 200, 0, 0.5)":"rgba(255, 255, 255, 0.4)";
-            ctx.beginPath(); ctx.moveTo(-10, top+30-yOff); ctx.lineTo(0, top+15-yOff); ctx.lineTo(10, top+30-yOff); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(-15, top+40-yOff); ctx.lineTo(-5, top+25-yOff); ctx.lineTo(5, top+40-yOff); ctx.fill();
-        } else if (skin.name === "GALAXY") {
-            let yOff = (frames * 0.5) % 20; ctx.fillStyle = "white";
-            ctx.fillRect(-5, top+10+yOff, 2, 2); ctx.fillRect(8, top+20+yOff, 2, 2); ctx.fillRect(-10, top+30+yOff, 2, 2);
-        } else if (skin.name === "ABYSSAL") {
-            if (Math.random() < 0.3) { ctx.fillStyle = "cyan"; ctx.fillRect(-20, top+20+rand(-5,5), 40, 2); ctx.fillStyle = "magenta"; ctx.fillRect(-20, top+25+rand(-5,5), 40, 2); }
-        }
-    }
-    ctx.restore(); ctx.strokeStyle = "#141419"; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = "#f5f5fa"; ctx.beginPath(); ctx.ellipse(0, top+10, 12, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-8, top+14); ctx.lineTo(-12, top+4); ctx.lineTo(-4, top+10); ctx.fill(); ctx.beginPath(); ctx.moveTo(8, top+14); ctx.lineTo(12, top+4); ctx.lineTo(4, top+10); ctx.fill();
-    ctx.fillStyle = (skin.name==="INFERNO"||skin.name==="DRAGON WARRIOR")?"#ff6400":skin.name==="ABYSSAL"?"#00ffff":skin.name==="Void"?"#ff00ff":skin.name==="Toxic"?"#00ff00":"#141419";
-    ctx.beginPath(); ctx.ellipse(-3, top+12, 2, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(3, top+12, 2, 4, 0, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
 }
 
 function drawBackground() {
@@ -609,6 +566,7 @@ function generateChunk(lX, lY) {
     last_plat_x=cX; last_plat_y=cY;
 }
 
+let dramaType = "none"; 
 function rollGacha() {
     let r = Math.random(); let pool = [];
     if (r > 0.99) { pool = SKINS.filter(s => s.rarity === "Legendary"); dramaType = "ascension"; }
@@ -620,6 +578,7 @@ function rollGacha() {
 
 const player = new Player(); const preview = new Player();
 
+// --- Main Input Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
@@ -647,46 +606,46 @@ function handleCanvasClick(mx, my) {
     }
     else if (state === "VAULT") {
         if (isBtn(mx, my, 50, 30, 100, 40)) state = "MENU"; 
-        let c = 5; let startX = 50; let startY = 120;
+        let c = 5; let startX = 50; let startY = 140;
         for (let i = 0; i < SKINS.length; i++) {
-            let x = startX + (i % c) * 80; let y = startY + Math.floor(i / c) * 90;
+            let x = startX + (i % c) * 82; let y = startY + Math.floor(i / c) * 95;
             if (isBtn(mx, my, x, y, 70, 80)) vault_sel = i;
         }
-        if (isBtn(mx, my, 550, 450, 250, 50)) {
+        if (isBtn(mx, my, 560, 480, 250, 50)) {
             if (saveData.unlocked.includes(SKINS[vault_sel].id) && saveData.equipped_id !== SKINS[vault_sel].id) {
                 saveData.equipped_id = SKINS[vault_sel].id; player.updateSkin(); syncToCloud();
             }
         }
     }
     else if (state === "GACHA_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
-        else if (isBtn(mx, my, 350, 350, 200, 60) || mx === -1) {
+        if (isBtn(mx, my, 50, 60, 100, 35)) { state = "MENU"; fetchLeaderboard(); }
+        else if (isBtn(mx, my, 350, 420, 200, 50) || mx === -1) {
             if (saveData.gems >= GACHA_COST) {
                 saveData.gems -= GACHA_COST; syncToCloud(); 
                 gacha_target = rollGacha();
-                preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
+                preview.updateSkin(gacha_target.id); 
                 state = "GACHA_ANIM"; gacha_timer = 240; gacha_return_state = "GACHA_MENU";
             }
         }
     }
     else if (state === "GACHA_RESULT") {
-        if (isBtn(mx, my, 350, 500, 200, 50) || mx === -1) {
+        if (isBtn(mx, my, 350, 520, 200, 50) || mx === -1) {
             state = gacha_return_state; 
             if (state === "MENU") fetchLeaderboard();
         }
     }
     else if (state === "SHARD_MENU") {
-        if (isBtn(mx, my, 50, 30, 100, 40)) { state = "MENU"; fetchLeaderboard(); }
-        else if (isBtn(mx, my, 250, 280, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
-        else if (isBtn(mx, my, 600, 280, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
-        else if (isBtn(mx, my, 350, 450, 200, 60) || mx === -1) {
+        if (isBtn(mx, my, 50, 60, 100, 35)) { state = "MENU"; fetchLeaderboard(); }
+        else if (isBtn(mx, my, 280, 240, 50, 50)) shard_sel = (shard_sel + 3) % 4; 
+        else if (isBtn(mx, my, 570, 240, 50, 50)) shard_sel = (shard_sel + 1) % 4; 
+        else if (isBtn(mx, my, 350, 420, 200, 50) || mx === -1) {
             let r = SHARD_TIERS[shard_sel]; let cost = SHARD_PRICES[r];
             if (saveData.shards >= cost) {
                 let missing = SKINS.filter(s => s.rarity === r && !saveData.unlocked.includes(s.id));
                 if (missing.length > 0) {
                     saveData.shards -= cost; syncToCloud();
                     gacha_target = missing[Math.floor(Math.random() * missing.length)];
-                    preview.updateSkin(gacha_target.id); preview.x=450-15; preview.y=280; 
+                    preview.updateSkin(gacha_target.id); 
                     state = "GACHA_ANIM"; gacha_timer = 240; gacha_return_state = "SHARD_MENU"; dramaType = "none";
                 } else alert(`You already own all ${r} skins!`);
             } else alert(`Not enough Shards! You need ${cost}.`);
@@ -841,7 +800,7 @@ function draw() {
 
     } else if (state === "MENU") {
         for (let p of particles) p.draw(ctx);
-        player.x = 200; player.y = 350; player.draw(ctx); 
+        drawKnightModel(ctx, 215, 360, player, true, frames, null); 
         drawTopBar();
 
         drawText("CRYSTAL JUMPER", 450, 120, 54, "#c8c8ff");
@@ -893,12 +852,10 @@ function draw() {
         drawButton(50, 60, 100, 35, "◀ BACK", "rgba(50,50,60,0.8)", "rgba(80,80,90,0.8)", "white", 14);
         drawPanel(250, 100, 400, 400, "GACHA TEMPLE");
         
-        // Pedestal
         ctx.fillStyle = "rgba(30,30,40,0.8)"; ctx.beginPath(); ctx.ellipse(450, 350, 80, 20, 0, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "rgba(20,20,30,0.8)"; ctx.fillRect(410, 350, 80, 80);
         ctx.fillStyle = "rgba(0,255,200,0.2)"; ctx.beginPath(); ctx.ellipse(450, 350, 60, 10, 0, 0, Math.PI*2); ctx.fill();
         
-        // Orb
         ctx.fillStyle = "rgba(100,100,150,0.8)"; ctx.beginPath(); ctx.arc(450, 280, 40, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(450, 280, 20, 0, Math.PI*2); ctx.fill();
 
@@ -909,7 +866,7 @@ function draw() {
         let pct = 1 - (gacha_timer / 240); 
         let col = getGachaColor(pct, dramaType, gacha_target.rarity);
 
-        ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.1)`; ctx.beginPath(); ctx.arc(450, 300, 100 + pct*200, 0, Math.PI*2); ctx.fill(); // Glow
+        ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.1)`; ctx.beginPath(); ctx.arc(450, 300, 100 + pct*200, 0, Math.PI*2); ctx.fill(); 
         ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.beginPath(); ctx.arc(450, 300, 40 + pct*40, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450, 300, 20 + pct*20, 0, Math.PI*2); ctx.fill(); 
         
@@ -917,14 +874,14 @@ function draw() {
         drawText("SUMMONING...", 450, 100, 48, "white"); 
 
     } else if (state === "GACHA_RESULT") {
-        drawBackground(); // Nice background for result
+        drawBackground(); 
         ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,600);
         for(let p of particles) p.draw(ctx);
         
         let col = RARITY_COLORS[gacha_target.rarity];
         drawText(`PULLED: ${gacha_target.name}`, 450, 120, 48, col); drawText(`Rarity: ${gacha_target.rarity}`, 450, 170, 24, col);
         
-        drawStaticSkin(ctx, 450, 320, gacha_target, true, 4.0); // MASSIVE PREVIEW
+        drawStaticSkin(ctx, 450, 320, gacha_target, true, 4.0); 
 
         if (gacha_msg === "DUPLICATE") { drawText("DUPLICATE DETECTED", 450, 450, 24, "#ff3232"); drawText(`Converted to +${shard_reward} Shards`, 450, 480, 24, "#ffd700"); }
         else drawText("NEW SKIN UNLOCKED!", 450, 460, 24, "#00ffc8");
