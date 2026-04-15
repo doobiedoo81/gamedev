@@ -20,17 +20,14 @@
             padding: 25px; border-radius: 16px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); box-sizing: border-box; text-align: center;
         }
 
-        /* --- NEW LAYOUT SYSTEM --- */
         .layout-wrapper { display: flex; gap: 30px; align-items: flex-start; justify-content: center; width: 100%; max-width: 900px; margin-top: 10px; padding-bottom: 30px; }
         .main-column { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; }
         .leaderboard-column { width: 100%; max-width: 300px; }
 
-        /* Menus and UI States */
         #loginSection { max-width: 350px; margin-top: 50px; }
         #mainMenu { display: none; flex-direction: column; gap: 15px; align-items: center; width: 100%; }
         #gameUI { display: none; flex-direction: column; align-items: center; width: 100%; }
         
-        /* Game Canvas */
         canvas { 
             background-color: rgba(20, 20, 30, 0.6); border-radius: 12px; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.05); 
             user-select: none; touch-action: none; max-width: 100%; height: auto; margin-bottom: 15px;
@@ -38,7 +35,6 @@
         
         input { padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-family: 'Poppins', sans-serif; outline: none; }
         
-        /* Button System */
         button { 
             background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; 
             width: 100%; font-weight: 800; font-size: 16px; font-family: 'Poppins', sans-serif; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
@@ -52,12 +48,10 @@
         .btn-achieve { background: linear-gradient(135deg, #34495e, #2c3e50); }
         .btn-danger { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; margin-top: 5px; }
 
-        /* HUD during gameplay */
         .game-hud { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; align-items: center; }
         .score-box { background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 20px; color: #f1c40f; }
         .pause-btn { width: auto; padding: 10px 20px; margin: 0; background: rgba(255,255,255,0.1); font-size: 14px; }
 
-        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: #1e1e24; border: 1px solid rgba(255,255,255,0.2); padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; box-sizing: border-box; max-height: 80vh; overflow-y: auto;}
         .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; font-weight: bold; }
@@ -75,13 +69,11 @@
         .achieve-list li { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .achieve-done { color: #2ecc71; font-weight: bold; }
 
-        /* MOBILE RESPONSIVE LAYOUT */
         @media (max-width: 800px) {
             .layout-wrapper { flex-direction: column; align-items: center; }
             .leaderboard-column { max-width: 400px; width: 90%; }
             .main-column { width: 90%; }
         }
-
     </style>
 </head>
 <body>
@@ -97,7 +89,6 @@
     <div id="appLayout" class="layout-wrapper" style="display:none;">
         
         <div class="main-column">
-            
             <div id="mainMenu" class="panel">
                 <h2 id="playerName" style="color: #3498db; margin: 0;">PLAYER</h2>
                 <div style="font-size: 14px; color: #aaa;">High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold;">0</span></div>
@@ -110,7 +101,7 @@
                 <hr style="width: 100%;">
                 
                 <div style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="sDisplay">0</span> s</span></button>
+                    <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="pullsDisplay">0</span> Pulls</span></button>
                     <button class="btn-shop" onclick="window.openModal('shardShopModal')">Shard Shop<br><span style="font-size:12px; font-weight:normal;"><span id="shardsDisplay">0</span> Shards</span></button>
                 </div>
                 
@@ -125,18 +116,15 @@
                 </div>
                 <canvas id="gameCanvas" width="400" height="520"></canvas>
             </div>
-
         </div>
 
         <div id="leaderboardPanel" class="panel leaderboard-column">
             <h2 style="color: #2ecc71; margin-bottom: 15px;">Global Top 10</h2>
             <ol id="leaderboardList" style="text-align: left; padding-left: 20px; color: #fff; margin: 0; font-size: 15px;"></ol>
         </div>
-
     </div>
 
     <div id="modalOverlay" class="modal-overlay">
-        
         <div id="vaultModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2 style="color: #9b59b6;">Skin Vault</h2>
@@ -147,8 +135,8 @@
         <div id="gachaTempleModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2 style="color: #f1c40f;">Gacha Temple</h2>
-            <p>Spend 1 Data  to acquire a random skin.</p>
-            <button class="btn-gacha" onclick="window.executeRoll('')">Rip Pack (Cost: 1 )</button>
+            <p>Spend 1 Data Pull to acquire a random skin.</p>
+            <button class="btn-gacha" onclick="window.executeRoll('pull')">Rip Pack (Cost: 1 Pull)</button>
             <div id="gachaResultArea" style="margin-top: 20px; display: none;">
                 <div id="gachaVisual" style="width: 60px; height: 60px; margin: 0 auto; border-radius: 8px;"></div>
                 <h3 id="gachaSkinName" style="margin: 10px 0;"></h3>
@@ -169,10 +157,9 @@
         <div id="achieveModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2>Achievements</h2>
-            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +5 Gacha Pull.</p>
+            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +1 Gacha Pull.</p>
             <ul id="achievementList" class="achieve-list"></ul>
         </div>
-
     </div>
 
     <script type="module">
@@ -205,7 +192,15 @@ const firebaseConfig = {
             getUser: async (username) => {
                 const userRef = doc(firestoreDb, "users", username);
                 const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) return userSnap.data();
+                
+                if (userSnap.exists()) {
+                    let data = userSnap.data();
+                    // FIX: Automatically upgrade old accounts to have the activeGame object
+                    if (!data.activeGame) {
+                        data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
+                    }
+                    return data;
+                }
                 
                 const newUser = { 
                     username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
@@ -244,16 +239,12 @@ const firebaseConfig = {
             try {
                 window.currentUser = await DB.getUser(username);
                 document.getElementById('loginSection').style.display = 'none';
-                
-                // Show the Dual-Column Layout
                 document.getElementById('appLayout').style.display = 'flex';
                 document.getElementById('mainMenu').style.display = 'flex';
-                
                 window.refreshMenuUI();
             } catch (error) { alert("Connection failed.\n" + error.message); input.value = username; input.disabled = false; }
         };
 
-        // --- MENU SYSTEM ---
         window.refreshMenuUI = async function() {
             const user = window.currentUser;
             document.getElementById('playerName').innerText = user.username.toUpperCase();
@@ -261,7 +252,6 @@ const firebaseConfig = {
             document.getElementById('pullsDisplay').innerText = user.pulls;
             document.getElementById('shardsDisplay').innerText = user.shards;
             
-            // Check Active Game State
             const playBtn = document.getElementById('btnPlay');
             const restartBtn = document.getElementById('btnRestart');
             if (user.activeGame && user.activeGame.inProgress) {
@@ -274,7 +264,6 @@ const firebaseConfig = {
                 restartBtn.style.display = "none";
             }
 
-            // Build Vault
             const vault = document.getElementById('vaultGrid');
             vault.innerHTML = '';
             SKIN_POOL.forEach(skinObj => {
@@ -290,7 +279,6 @@ const firebaseConfig = {
                 vault.appendChild(div);
             });
 
-            // Build Achievements
             const achList = document.getElementById('achievementList');
             achList.innerHTML = '';
             for(let i = 200; i <= 2000; i+=200) {
@@ -301,7 +289,6 @@ const firebaseConfig = {
                 achList.appendChild(li);
             }
 
-            // Update Permanent Leaderboard Panel
             const lb = document.getElementById('leaderboardList');
             const liveLeaderboard = await DB.getLeaderboard();
             lb.innerHTML = '';
@@ -324,7 +311,6 @@ const firebaseConfig = {
         }
         window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
 
-        // --- GACHA & SHOP SYSTEM ---
         window.executeRoll = async function(type) {
             let user = window.currentUser;
             if (type === 'pull') {
@@ -366,32 +352,29 @@ const firebaseConfig = {
         }
 
         // ==========================================
-        // 3. CORE GAME ENGINE (CLOUD SYNCED)
+        // 3. CORE GAME ENGINE
         // ==========================================
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const ROWS = 10; const COLS = 10; const SIZE = 40; const TRAY_Y = 420;
 
-        let score = 0; 
-        let board = [];
-        let trayShapes = []; 
-        let legendPhase = 0;
-        let isDragging = false; let draggedIndex = -1; let mouseX = 0, mouseY = 0; let dragOffsetX = 0, dragOffsetY = 0;
+        let score = 0; let board = []; let trayShapes = []; 
+        let legendPhase = 0; let isDragging = false; let draggedIndex = -1; let mouseX = 0, mouseY = 0; let dragOffsetX = 0, dragOffsetY = 0;
 
+        // FIX: Expanded to 28 Unique Shapes!
         const SHAPE_LIBRARY = [
-            [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,1,0]], [[1,1],[0,1],[0,1]]
+            [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1,1,1,1]], [[1],[1],[1],[1],[1]],
+            [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1],[1,1,1]], [[1,1],[1,1],[1,1]], 
+            [[1,1],[1,0]], [[1,1],[0,1]], [[1,0],[1,1]], [[0,1],[1,1]], 
+            [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,0,1],[0,0,1]], [[0,0,1],[0,0,1],[1,1,1]], [[1,0,0],[1,0,0],[1,1,1]],
+            [[1,1,1],[0,1,0]], [[0,1,0],[1,1,1]], [[1,0],[1,1],[1,0]], [[0,1],[1,1],[0,1]], 
+            [[0,1,0],[1,1,1],[0,1,0]], [[1,1,0],[0,1,1]], [[0,1,1],[1,1,0]]
         ];
 
-        // START OR PAUSE
         window.toggleGame = function(starting) {
             if (starting) {
                 document.getElementById('mainMenu').style.display = 'none';
                 document.getElementById('gameUI').style.display = 'flex';
-                
-                // Ensure backward compatibility for users without an activeGame state yet
-                if (!window.currentUser.activeGame) {
-                    window.currentUser.activeGame = { inProgress: false };
-                }
                 
                 if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
                     board = JSON.parse(window.currentUser.activeGame.boardStr);
@@ -426,42 +409,43 @@ const firebaseConfig = {
         window.restartGame = function() {
             if(confirm("Are you sure? Current progress will be lost.")) {
                 window.currentUser.activeGame.inProgress = false;
-                DB.saveUser(window.currentUser);
+                syncCloudSave();
                 window.refreshMenuUI();
             }
         }
 
         function syncCloudSave() {
             let user = window.currentUser;
-            user.activeGame = { 
-                inProgress: true, 
-                score: score, 
-                boardStr: JSON.stringify(board), 
-                trayStr: JSON.stringify(trayShapes) 
-            };
+            // FIX: We only update the properties to avoid wiping the inProgress state
+            user.activeGame.score = score;
+            user.activeGame.boardStr = JSON.stringify(board);
+            user.activeGame.trayStr = JSON.stringify(trayShapes);
             DB.saveUser(user);
         }
 
         function refillTray() {
             trayShapes = [];
-            for (let i = 0; i < 3; i++) trayShapes.push({ matrix: SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], used: false });
+            // FIX: Guaranteed no duplicate blocks in a single pull
+            let availableShapes = [...SHAPE_LIBRARY];
+            for (let i = 0; i < 3; i++) { 
+                let randomIndex = Math.floor(Math.random() * availableShapes.length);
+                trayShapes.push({ matrix: availableShapes[randomIndex], used: false });
+                availableShapes.splice(randomIndex, 1);
+            }
         }
 
         async function addScore(points) {
             score += points; document.getElementById('currentScoreDisplay').innerText = score;
             let user = window.currentUser; let milestones = Math.floor(score / 200);
             if (user.achievements['score_' + milestones * 200] === undefined && score >= 200) {
-                user.pulls += 5; user.achievements['score_' + milestones * 200] = true;
+                user.pulls += 1; user.achievements['score_' + milestones * 200] = true;
             }
             if (score > user.highScore) user.highScore = score;
             syncCloudSave();
             
-            if(score === user.highScore) {
-                window.refreshMenuUI();
-            }
+            if(score === user.highScore) window.refreshMenuUI();
         }
 
-        // --- DRAWING LOOP ---
         function fillRoundRect(x, y, w, h, radius, fillStyle) { ctx.fillStyle = fillStyle; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill(); }
 
         function draw() {
@@ -508,7 +492,6 @@ const firebaseConfig = {
             }
         }
 
-        // --- PHYSICS ---
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
             let clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
@@ -553,8 +536,14 @@ const firebaseConfig = {
                 if (isGameOver()) {
                     setTimeout(() => {
                         alert("GAME OVER! Final Score: " + score);
+                        
+                        // FIX: Wipe the cloud save properly so "New Game" works cleanly
                         window.currentUser.activeGame.inProgress = false;
-                        DB.saveUser(window.currentUser);
+                        board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+                        score = 0;
+                        refillTray();
+                        syncCloudSave(); 
+                        
                         window.toggleGame(false); 
                     }, 100);
                 }
