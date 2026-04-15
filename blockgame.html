@@ -125,6 +125,17 @@
     </div>
 
     <div id="modalOverlay" class="modal-overlay">
+        
+        <div id="gameOverModal" class="modal-box" style="display: none;">
+            <h2 style="color: #e74c3c;">SEQUENCE TERMINATED</h2>
+            <h1 id="gameOverScoreDisplay" style="color: #f1c40f; font-size: 48px; margin: 10px 0;">0</h1>
+            <p style="color: #aaa; margin-bottom: 25px;">Final Score</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-achieve" onclick="window.exitToMenu()">Back to Menu</button>
+                <button class="btn-play" onclick="window.restartFromGameOver()" style="padding: 15px; margin-top: 0;">Play Again</button>
+            </div>
+        </div>
+
         <div id="vaultModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2 style="color: #9b59b6;">Skin Vault</h2>
@@ -195,7 +206,6 @@ const firebaseConfig = {
                 
                 if (userSnap.exists()) {
                     let data = userSnap.data();
-                    // FIX: Automatically upgrade old accounts to have the activeGame object
                     if (!data.activeGame) {
                         data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
                     }
@@ -361,7 +371,6 @@ const firebaseConfig = {
         let score = 0; let board = []; let trayShapes = []; 
         let legendPhase = 0; let isDragging = false; let draggedIndex = -1; let mouseX = 0, mouseY = 0; let dragOffsetX = 0, dragOffsetY = 0;
 
-        // FIX: Expanded to 28 Unique Shapes!
         const SHAPE_LIBRARY = [
             [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1,1,1,1]], [[1],[1],[1],[1],[1]],
             [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1],[1,1,1]], [[1,1],[1,1],[1,1]], 
@@ -414,9 +423,29 @@ const firebaseConfig = {
             }
         }
 
+        // --- NEW MODAL ROUTING FUNCTIONS ---
+        window.exitToMenu = function() {
+            window.closeModal();
+            // Wipe the local board so New Game works later
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            score = 0;
+            refillTray();
+            window.toggleGame(false); 
+        };
+
+        window.restartFromGameOver = function() {
+            window.closeModal();
+            // Wipe the board and immediately restart
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            score = 0;
+            refillTray();
+            window.currentUser.activeGame.inProgress = true;
+            syncCloudSave();
+            document.getElementById('currentScoreDisplay').innerText = score;
+        };
+
         function syncCloudSave() {
             let user = window.currentUser;
-            // FIX: We only update the properties to avoid wiping the inProgress state
             user.activeGame.score = score;
             user.activeGame.boardStr = JSON.stringify(board);
             user.activeGame.trayStr = JSON.stringify(trayShapes);
@@ -425,7 +454,6 @@ const firebaseConfig = {
 
         function refillTray() {
             trayShapes = [];
-            // FIX: Guaranteed no duplicate blocks in a single pull
             let availableShapes = [...SHAPE_LIBRARY];
             for (let i = 0; i < 3; i++) { 
                 let randomIndex = Math.floor(Math.random() * availableShapes.length);
@@ -535,17 +563,15 @@ const firebaseConfig = {
 
                 if (isGameOver()) {
                     setTimeout(() => {
-                        alert("GAME OVER! Final Score: " + score);
+                        // FIX: Show Game Over Modal instead of Alert
+                        document.getElementById('modalOverlay').style.display = 'flex';
+                        document.getElementById('gameOverModal').style.display = 'block';
+                        document.getElementById('gameOverScoreDisplay').innerText = score;
                         
-                        // FIX: Wipe the cloud save properly so "New Game" works cleanly
+                        // Wipe the cloud save properly so "New Game" works cleanly if they exit
                         window.currentUser.activeGame.inProgress = false;
-                        board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-                        score = 0;
-                        refillTray();
                         syncCloudSave(); 
-                        
-                        window.toggleGame(false); 
-                    }, 100);
+                    }, 300); // 300ms delay so they can see their final placed piece
                 }
             }
             isDragging = false; draggedIndex = -1; 
