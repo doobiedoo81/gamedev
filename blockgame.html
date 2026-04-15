@@ -2,173 +2,158 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Block Puzzle: Cloud Legends</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Legends</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* Overall Page Theme */
         body { 
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #ecf0f1; 
-            font-family: 'Poppins', sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            margin: 0;
-            min-height: 100vh;
-            padding-top: 30px;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: #ecf0f1; font-family: 'Poppins', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; padding-top: 20px;
         }
         
-        h1 { margin-bottom: 5px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h1 { margin-bottom: 5px; font-weight: 800; text-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; }
         h2, h3 { margin-top: 0; color: #fff; }
-        hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 20px 0; }
+        hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; }
 
-        .container { display: flex; gap: 30px; align-items: flex-start; margin-top: 20px; }
-        
-        /* Glassmorphism Panels */
         .panel { 
-            background: rgba(255, 255, 255, 0.05); 
-            backdrop-filter: blur(12px); 
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            padding: 25px; 
-            border-radius: 16px; 
-            width: 280px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); 
+            padding: 25px; border-radius: 16px; width: 90%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); box-sizing: border-box; text-align: center;
         }
 
-        /* The Game Board */
+        /* Menus and UI States */
+        #mainMenu { display: none; flex-direction: column; gap: 15px; align-items: center; }
+        #gameUI { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 400px; }
+        
+        /* Game Canvas */
         canvas { 
-            background-color: rgba(20, 20, 30, 0.6); 
-            border-radius: 12px; 
-            box-shadow: 0 15px 50px rgba(0,0,0,0.6); 
-            cursor: pointer; 
-            border: 1px solid rgba(255,255,255,0.05); 
+            background-color: rgba(20, 20, 30, 0.6); border-radius: 12px; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.05); 
+            user-select: none; touch-action: none; max-width: 100%; height: auto; margin-bottom: 15px;
         }
         
-        /* Clean Inputs & Buttons */
-        input { 
-            padding: 12px; 
-            width: 100%; 
-            box-sizing: border-box;
-            margin-bottom: 15px; 
-            border-radius: 8px; 
-            border: 1px solid rgba(255,255,255,0.2); 
-            background: rgba(0,0,0,0.2); 
-            color: white; 
-            font-family: 'Poppins', sans-serif;
-            outline: none;
-        }
-        input:focus { border-color: #3498db; }
+        input { padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-family: 'Poppins', sans-serif; outline: none; }
         
+        /* Button System */
         button { 
-            background: linear-gradient(135deg, #3498db, #2980b9); 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            width: 100%; 
-            margin-top: 10px; 
-            font-weight: 600; 
-            font-family: 'Poppins', sans-serif;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; 
+            width: 100%; font-weight: 800; font-size: 16px; font-family: 'Poppins', sans-serif; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
-        button:active { transform: translateY(1px); }
         
-        /* Special Gacha Button */
-        .gacha-btn { 
-            background: linear-gradient(135deg, #f1c40f, #e67e22); 
-            color: #2c3e50; 
-            font-weight: 800;
-            box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
-        }
-        .gacha-btn:hover { box-shadow: 0 6px 20px rgba(241, 196, 15, 0.5); }
+        .btn-play { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); font-size: 18px; padding: 20px; }
+        .btn-gacha { background: linear-gradient(135deg, #f1c40f, #e67e22); color: #2c3e50; }
+        .btn-vault { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .btn-shop { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .btn-achieve { background: linear-gradient(135deg, #34495e, #2c3e50); }
+        .btn-danger { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; margin-top: 5px; }
+
+        /* HUD during gameplay */
+        .game-hud { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; align-items: center; }
+        .score-box { background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 20px; color: #f1c40f; }
+        .pause-btn { width: auto; padding: 10px 20px; margin: 0; background: rgba(255,255,255,0.1); font-size: 14px; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: #1e1e24; border: 1px solid rgba(255,255,255,0.2); padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; box-sizing: border-box; max-height: 80vh; overflow-y: auto;}
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; font-weight: bold; }
         
-        /* Data Displays */
-        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .stat-value { font-weight: 800; font-size: 1.1em; }
-        .score-highlight { color: #f1c40f; font-size: 1.3em; }
+        .vault-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+        .skin-swatch { width: 50px; height: 50px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; transition: all 0.2s ease; }
+        .skin-swatch.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.5); transform: scale(1.1); }
+        .skin-locked { background: #333 !important; color: #666; cursor: not-allowed; border-color: transparent; }
 
-        /* Tiers */
-        .tier-Common { color: #bdc3c7; }
-        .tier-Rare { color: #3498db; }
-        .tier-Epic { color: #9b59b6; font-weight: bold; }
-        .tier-Legendary { 
-            color: #ff9f43; 
-            font-weight: 800; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: legendaryGlow 1.5s infinite alternate; 
-        }
-        
-        @keyframes legendaryGlow {
-            from { text-shadow: 0 0 5px #ff9f43; }
-            to { text-shadow: 0 0 15px #ff9f43, 0 0 25px #ffce6b; }
-        }
+        .tier-Common { color: #bdc3c7; } .tier-Rare { color: #3498db; } .tier-Epic { color: #9b59b6; font-weight: bold; }
+        .tier-Legendary { color: #ff9f43; font-weight: 800; text-transform: uppercase; animation: legendaryGlow 1.5s infinite alternate; }
+        @keyframes legendaryGlow { from { text-shadow: 0 0 5px #ff9f43; } to { text-shadow: 0 0 15px #ff9f43, 0 0 25px #ffce6b; } }
 
-        /* Skin Vault Grid */
-        .vault-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
-        .skin-swatch { 
-            width: 32px; 
-            height: 32px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            border: 2px solid rgba(255,255,255,0.1); 
-            transition: all 0.2s ease;
-        }
-        .skin-swatch:hover { transform: scale(1.1); }
-        .skin-swatch.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); transform: scale(1.1); }
+        .achieve-list { text-align: left; font-size: 14px; color: #bdc3c7; }
+        .achieve-list li { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .achieve-done { color: #2ecc71; font-weight: bold; }
 
-        /* Leaderboard */
-        #leaderboardList { padding-left: 0; list-style-position: inside; margin: 0; }
-        #leaderboardList li { 
-            background: rgba(0,0,0,0.2); 
-            margin-bottom: 8px; 
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            display: flex; 
-            justify-content: space-between;
-        }
     </style>
 </head>
 <body>
 
     <h1>CLOUD LEGENDS</h1>
     
-    <div id="loginSection" class="panel" style="margin-top: 50px; text-align: center;">
+    <div id="loginSection" class="panel" style="margin-top: 50px;">
         <h3 style="margin-bottom: 20px;">Connect Identity</h3>
-        <input type="text" id="usernameInput" placeholder="Enter Username">
-        <button onclick="window.login()">Initialize Game</button>
+        <input type="text" id="usernameInput" placeholder="Enter User ID">
+        <button onclick="window.login()">Initialize Link</button>
     </div>
 
-    <div id="gameUI" class="container" style="display:none;">
+    <div id="mainMenu" class="panel">
+        <h2 id="playerName" style="color: #3498db; margin: 0;">PLAYER</h2>
+        <div style="font-size: 14px; color: #aaa;">High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold;">0</span></div>
         
-        <div class="panel">
-            <h2 id="playerName" style="color: #3498db;">Player</h2>
-            <div class="stat-row"><span>High Score:</span> <span id="highScoreDisplay" class="stat-value score-highlight">0</span></div>
-            <div class="stat-row"><span>Current Score:</span> <span id="currentScoreDisplay" class="stat-value">0</span></div>
-            <hr>
-            <h3>Armory</h3>
-            <div class="stat-row"><span>Data Pulls:</span> <span id="pullsDisplay" class="stat-value" style="color: #f1c40f;">0</span></div>
-            <div class="stat-row"><span>Shards:</span> <span class="stat-value"><span id="shardsDisplay">0</span><span style="font-size:0.7em; color:#888;">/100</span></span></div>
-            <button class="gacha-btn" onclick="window.pullGacha()">Extract Skin (1 Pull)</button>
-            <button onclick="window.craftSkin()">Synthesize (100 Shards)</button>
-            <p id="gachaResult" style="text-align:center; font-size: 0.9em; min-height: 40px; margin-top:15px;"></p>
-            <hr>
-            <h3>Vault</h3>
+        <hr style="width: 100%;">
+        
+        <button id="btnPlay" class="btn-play" onclick="window.toggleGame(true)">▶ NEW GAME</button>
+        <button id="btnRestart" class="btn-danger" style="display:none;" onclick="window.restartGame()">Restart / Surrender</button>
+        
+        <hr style="width: 100%;">
+        
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="pullsDisplay">0</span> Pulls</span></button>
+            <button class="btn-shop" onclick="window.openModal('shardShopModal')">Shard Shop<br><span style="font-size:12px; font-weight:normal;"><span id="shardsDisplay">0</span> Shards</span></button>
+        </div>
+        
+        <button class="btn-vault" onclick="window.openModal('vaultModal')">Skin Vault & Loadout</button>
+        <button class="btn-achieve" onclick="window.openModal('achieveModal')">Achievements</button>
+        <button onclick="window.openModal('leaderboardModal')" style="background: rgba(0,0,0,0.3);">Global Leaderboard</button>
+    </div>
+
+    <div id="gameUI">
+        <div class="game-hud">
+            <button class="pause-btn" onclick="window.toggleGame(false)">❮ Lobby & Save</button>
+            <div class="score-box" id="currentScoreDisplay">0</div>
+        </div>
+        <canvas id="gameCanvas" width="400" height="520"></canvas>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay">
+        
+        <div id="vaultModal" class="modal-box" style="display: none;">
+            <div class="close-btn" onclick="window.closeModal()">&times;</div>
+            <h2 style="color: #9b59b6;">Skin Vault</h2>
+            <p style="font-size: 12px; color: #aaa;">Equip skins for your active loadout.</p>
             <div id="vaultGrid" class="vault-grid"></div>
         </div>
 
-        <div>
-            <canvas id="gameCanvas" width="400" height="520"></canvas>
+        <div id="gachaTempleModal" class="modal-box" style="display: none;">
+            <div class="close-btn" onclick="window.closeModal()">&times;</div>
+            <h2 style="color: #f1c40f;">Gacha Temple</h2>
+            <p>Spend 1 Data Pull to acquire a random skin.</p>
+            <button class="btn-gacha" onclick="window.executeRoll('pull')">Rip Pack (Cost: 1 Pull)</button>
+            <div id="gachaResultArea" style="margin-top: 20px; display: none;">
+                <div id="gachaVisual" style="width: 60px; height: 60px; margin: 0 auto; border-radius: 8px;"></div>
+                <h3 id="gachaSkinName" style="margin: 10px 0;"></h3>
+                <p id="gachaResultText" style="font-weight: bold;"></p>
+            </div>
         </div>
 
-        <div class="panel">
-            <h3 style="color: #2ecc71;">Global Top 10</h3>
-            <ol id="leaderboardList"></ol>
+        <div id="shardShopModal" class="modal-box" style="display: none;">
+            <div class="close-btn" onclick="window.closeModal()">&times;</div>
+            <h2 style="color: #e74c3c;">Shard Shop</h2>
+            <p>Convert 100 Duplicate Shards into a guaranteed new roll.</p>
+            <button class="btn-shop" onclick="window.executeRoll('shard')">Synthesize (Cost: 100 Shards)</button>
+            <div id="shardResultArea" style="margin-top: 20px; display: none;">
+                <p id="shardResultText" style="font-weight: bold;"></p>
+            </div>
         </div>
+
+        <div id="achieveModal" class="modal-box" style="display: none;">
+            <div class="close-btn" onclick="window.closeModal()">&times;</div>
+            <h2>Achievements</h2>
+            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +1 Gacha Pull.</p>
+            <ul id="achievementList" class="achieve-list"></ul>
+        </div>
+
+        <div id="leaderboardModal" class="modal-box" style="display: none;">
+            <div class="close-btn" onclick="window.closeModal()">&times;</div>
+            <h2 style="color: #2ecc71;">Global Top 10</h2>
+            <ol id="leaderboardList" style="text-align: left; padding-left: 20px; color: #fff;"></ol>
+        </div>
+
     </div>
 
     <script type="module">
@@ -195,7 +180,7 @@ const firebaseConfig = {
         const firestoreDb = getFirestore(app);
 
         // ==========================================
-        // 2. DATABASE LOGIC
+        // 2. DATABASE & META LOGIC
         // ==========================================
         const DB = {
             getUser: async (username) => {
@@ -203,26 +188,22 @@ const firebaseConfig = {
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) return userSnap.data();
                 
-                const newUser = { username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {} };
-                await setDoc(userRef, newUser);
-                return newUser;
+                // NEW: Added `activeGame` object to save state across devices
+                const newUser = { 
+                    username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
+                    activeGame: { inProgress: false, score: 0, board: [], tray: [] }
+                };
+                await setDoc(userRef, newUser); return newUser;
             },
-            saveUser: async (user) => {
-                const userRef = doc(firestoreDb, "users", user.username);
-                await setDoc(userRef, user);
-            },
+            saveUser: async (user) => { await setDoc(doc(firestoreDb, "users", user.username), user); },
             getLeaderboard: async () => {
                 const q = query(collection(firestoreDb, "users"), orderBy("highScore", "desc"), limit(10));
-                const snap = await getDocs(q);
-                let board = [];
+                const snap = await getDocs(q); let board = [];
                 snap.forEach(doc => board.push({ username: doc.data().username, score: doc.data().highScore }));
                 return board;
             }
         };
 
-        // ==========================================
-        // 3. META SYSTEM & GACHA
-        // ==========================================
         const SKIN_POOL = [
             { name: "Crimson Core", color: "#e74c3c", tier: "Common", weight: 40 },
             { name: "Cobalt Drive", color: "#3498db", tier: "Common", weight: 40 },
@@ -234,47 +215,71 @@ const firebaseConfig = {
         ];
 
         window.currentUser = null;
+        window.gameLoopId = null;
 
         window.login = async function() {
             const input = document.getElementById('usernameInput');
             const username = input.value.trim();
             if (!username) return;
             
-            input.value = "Authenticating...";
-            input.disabled = true;
-
+            input.value = "Connecting to Cloud..."; input.disabled = true;
             try {
                 window.currentUser = await DB.getUser(username);
                 document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('gameUI').style.display = 'flex';
-                
-                await window.refreshUI();
-                initGame();
-            } catch (error) {
-                alert("Connection failed. Check Firebase config.\n" + error.message);
-                input.value = username;
-                input.disabled = false;
-            }
+                document.getElementById('mainMenu').style.display = 'flex';
+                window.refreshMenuUI();
+            } catch (error) { alert("Connection failed.\n" + error.message); input.value = username; input.disabled = false; }
         };
 
-        window.refreshUI = async function() {
+        // --- MENU SYSTEM ---
+        window.refreshMenuUI = async function() {
             const user = window.currentUser;
             document.getElementById('playerName').innerText = user.username.toUpperCase();
             document.getElementById('highScoreDisplay').innerText = user.highScore;
             document.getElementById('pullsDisplay').innerText = user.pulls;
             document.getElementById('shardsDisplay').innerText = user.shards;
             
+            // Check Active Game State
+            const playBtn = document.getElementById('btnPlay');
+            const restartBtn = document.getElementById('btnRestart');
+            if (user.activeGame && user.activeGame.inProgress) {
+                playBtn.innerText = "▶ RESUME MATCH (Score: " + user.activeGame.score + ")";
+                playBtn.style.background = "linear-gradient(135deg, #f39c12, #d35400)";
+                restartBtn.style.display = "block";
+            } else {
+                playBtn.innerText = "▶ DEPLOY NEW GAME";
+                playBtn.style.background = "linear-gradient(135deg, #2ecc71, #27ae60)";
+                restartBtn.style.display = "none";
+            }
+
+            // Build Vault
             const vault = document.getElementById('vaultGrid');
             vault.innerHTML = '';
-            user.vault.forEach(skin => {
+            SKIN_POOL.forEach(skinObj => {
                 let div = document.createElement('div');
-                div.className = 'skin-swatch' + (user.activeSkin === skin ? ' active' : '');
-                if(skin.startsWith('legendary')) div.style.background = skin === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)';
-                else div.style.backgroundColor = skin;
-                div.onclick = async () => { user.activeSkin = skin; await DB.saveUser(user); window.refreshUI(); };
+                if (user.vault.includes(skinObj.color)) {
+                    div.className = 'skin-swatch' + (user.activeSkin === skinObj.color ? ' active' : '');
+                    if(skinObj.color.startsWith('legendary')) div.style.background = skinObj.color === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)';
+                    else div.style.backgroundColor = skinObj.color;
+                    div.onclick = async () => { user.activeSkin = skinObj.color; await DB.saveUser(user); window.refreshMenuUI(); };
+                } else {
+                    div.className = 'skin-swatch skin-locked'; div.innerText = '?';
+                }
                 vault.appendChild(div);
             });
 
+            // Build Achievements
+            const achList = document.getElementById('achievementList');
+            achList.innerHTML = '';
+            for(let i = 200; i <= 2000; i+=200) {
+                let li = document.createElement('li');
+                let done = user.achievements['score_' + i];
+                li.className = done ? 'achieve-done' : '';
+                li.innerText = done ? `✔ Scored ${i} pts (+1 Pull)` : `🔒 Score ${i} pts`;
+                achList.appendChild(li);
+            }
+
+            // Build Leaderboard (Async)
             const lb = document.getElementById('leaderboardList');
             const liveLeaderboard = await DB.getLeaderboard();
             lb.innerHTML = '';
@@ -285,136 +290,163 @@ const firebaseConfig = {
             });
         };
 
-        window.pullGacha = function() {
-            if (window.currentUser.pulls < 1) return;
-            window.currentUser.pulls -= 1;
-            executeRoll();
-        };
+        window.openModal = function(modalId) {
+            document.querySelectorAll('.modal-box').forEach(b => b.style.display = 'none');
+            document.getElementById('modalOverlay').style.display = 'flex';
+            document.getElementById(modalId).style.display = 'block';
+            document.getElementById('gachaResultArea').style.display = 'none'; // reset visual
+            document.getElementById('shardResultArea').style.display = 'none';
+        }
+        window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
 
-        window.craftSkin = function() {
-            if (window.currentUser.shards < 100) return;
-            window.currentUser.shards -= 100;
-            executeRoll();
-        };
-
-        async function executeRoll() {
-            let totalWeight = SKIN_POOL.reduce((sum, item) => sum + item.weight, 0);
-            let random = Math.random() * totalWeight;
-            let pulledSkin = SKIN_POOL[0];
-            
-            for (let item of SKIN_POOL) {
-                if (random < item.weight) { pulledSkin = item; break; }
-                random -= item.weight;
+        // --- GACHA & SHOP SYSTEM ---
+        window.executeRoll = async function(type) {
+            let user = window.currentUser;
+            if (type === 'pull') {
+                if (user.pulls < 1) return alert("Not enough pulls!");
+                user.pulls -= 1;
+            } else if (type === 'shard') {
+                if (user.shards < 100) return alert("Need 100 Shards!");
+                user.shards -= 100;
             }
 
-            let resultText = document.getElementById('gachaResult');
-            let user = window.currentUser;
+            let totalWeight = SKIN_POOL.reduce((sum, item) => sum + item.weight, 0);
+            let random = Math.random() * totalWeight; let pulledSkin = SKIN_POOL[0];
+            for (let item of SKIN_POOL) { if (random < item.weight) { pulledSkin = item; break; } random -= item.weight; }
+
+            let resultTextId = type === 'pull' ? 'gachaResultText' : 'shardResultText';
+            let resText = document.getElementById(resultTextId);
             
             if (user.vault.includes(pulledSkin.color)) {
                 let shardGain = pulledSkin.tier === "Legendary" ? 50 : pulledSkin.tier === "Epic" ? 25 : 10;
                 user.shards += shardGain;
-                resultText.innerHTML = `Duplicate <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>.<br>+${shardGain} Shards.`;
+                resText.innerHTML = `Duplicate <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>. Converted to +${shardGain} Shards.`;
+                resText.style.color = "#bdc3c7";
             } else {
                 user.vault.push(pulledSkin.color);
-                resultText.innerHTML = `Acquired: <br><span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>!`;
+                resText.innerHTML = `NEW UNLOCK! You acquired <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>.`;
+                resText.style.color = "#2ecc71";
             }
             
-            await DB.saveUser(user);
-            window.refreshUI();
+            if (type === 'pull') {
+                document.getElementById('gachaResultArea').style.display = 'block';
+                let vis = document.getElementById('gachaVisual');
+                vis.style.background = pulledSkin.color.startsWith('legendary') ? (pulledSkin.color === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)') : pulledSkin.color;
+                document.getElementById('gachaSkinName').innerHTML = `<span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>`;
+            } else {
+                document.getElementById('shardResultArea').style.display = 'block';
+            }
+            
+            await DB.saveUser(user); window.refreshMenuUI();
         }
 
         // ==========================================
-        // 4. THE GAME ENGINE (WITH ROUNDED BLOCKS)
+        // 3. CORE GAME ENGINE (CLOUD SYNCED)
         // ==========================================
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const ROWS = 10; const COLS = 10; const SIZE = 40; const TRAY_Y = 420;
 
-        let score = 0;
-        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-        let trayShapes = [];
-        let selectedTrayIndex = -1;
+        let score = 0; 
+        let board = [];
+        let trayShapes = []; 
         let legendPhase = 0;
+        let isDragging = false; let draggedIndex = -1; let mouseX = 0, mouseY = 0; let dragOffsetX = 0, dragOffsetY = 0;
 
         const SHAPE_LIBRARY = [
             [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,1,0]], [[1,1],[0,1],[0,1]]
         ];
 
-        function initGame() {
-            refillTray();
-            canvas.addEventListener('mousedown', handleMouseClick);
-            setInterval(draw, 30); 
+        // START OR PAUSE
+        window.toggleGame = function(starting) {
+            if (starting) {
+                document.getElementById('mainMenu').style.display = 'none';
+                document.getElementById('gameUI').style.display = 'flex';
+                
+                // Load cloud save OR start fresh
+                if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
+                    board = window.currentUser.activeGame.board;
+                    score = window.currentUser.activeGame.score;
+                    trayShapes = window.currentUser.activeGame.tray;
+                } else {
+                    board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+                    score = 0;
+                    refillTray();
+                    window.currentUser.activeGame.inProgress = true;
+                    syncCloudSave(); // Initial save
+                }
+                
+                document.getElementById('currentScoreDisplay').innerText = score;
+                
+                // Bind Controls once
+                if(!window.gameLoopId) {
+                    canvas.addEventListener('mousedown', pointerDown); canvas.addEventListener('mousemove', pointerMove); window.addEventListener('mouseup', pointerUp);
+                    canvas.addEventListener('touchstart', pointerDown, {passive: false}); canvas.addEventListener('touchmove', pointerMove, {passive: false}); window.addEventListener('touchend', pointerUp);
+                }
+                window.gameLoopId = setInterval(draw, 30); 
+
+            } else {
+                // Pause and Return to Menu
+                clearInterval(window.gameLoopId);
+                window.gameLoopId = null;
+                document.getElementById('gameUI').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'flex';
+                syncCloudSave(); // Ensure saved before exit
+                window.refreshMenuUI();
+            }
+        }
+
+        window.restartGame = function() {
+            if(confirm("Are you sure? Current progress will be lost.")) {
+                window.currentUser.activeGame.inProgress = false;
+                DB.saveUser(window.currentUser);
+                window.refreshMenuUI();
+            }
+        }
+
+        // PUSH STATE TO FIREBASE
+        function syncCloudSave() {
+            let user = window.currentUser;
+            user.activeGame = { inProgress: true, score: score, board: board, tray: trayShapes };
+            DB.saveUser(user);
         }
 
         function refillTray() {
             trayShapes = [];
-            for (let i = 0; i < 3; i++) {
-                trayShapes.push({ matrix: SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], used: false });
-            }
+            for (let i = 0; i < 3; i++) trayShapes.push({ matrix: SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], used: false });
         }
 
         async function addScore(points) {
-            score += points;
-            document.getElementById('currentScoreDisplay').innerText = score;
-            let user = window.currentUser;
-            
-            let milestones = Math.floor(score / 200);
+            score += points; document.getElementById('currentScoreDisplay').innerText = score;
+            let user = window.currentUser; let milestones = Math.floor(score / 200);
             if (user.achievements['score_' + milestones * 200] === undefined && score >= 200) {
-                user.pulls += 1;
-                user.achievements['score_' + milestones * 200] = true;
-                // Soft notification instead of harsh alert
-                document.getElementById('gachaResult').innerHTML = `<span style="color:#2ecc71;">Milestone Reached! +1 Pull</span>`;
+                user.pulls += 1; user.achievements['score_' + milestones * 200] = true;
             }
-
-            if (score > user.highScore) {
-                user.highScore = score;
-                await DB.saveUser(user);
-                window.refreshUI(); 
-            } else {
-                DB.saveUser(user);
-            }
+            if (score > user.highScore) user.highScore = score;
+            syncCloudSave(); // Saves score, highscore, and board in one go
         }
 
-        // Helper function to draw blocks with rounded corners
-        function fillRoundRect(x, y, w, h, radius, fillStyle) {
-            ctx.fillStyle = fillStyle;
-            ctx.beginPath();
-            ctx.roundRect(x, y, w, h, radius);
-            ctx.fill();
-        }
+        // --- DRAWING LOOP ---
+        function fillRoundRect(x, y, w, h, radius, fillStyle) { ctx.fillStyle = fillStyle; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill(); }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            legendPhase += 0.05;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); legendPhase += 0.05;
 
-            // Draw Background Grid Lines
-            ctx.strokeStyle = "rgba(255,255,255,0.03)";
-            ctx.lineWidth = 1;
-            for (let r = 0; r <= ROWS; r++) {
-                ctx.beginPath(); ctx.moveTo(0, r * SIZE); ctx.lineTo(COLS * SIZE, r * SIZE); ctx.stroke();
-            }
-            for (let c = 0; c <= COLS; c++) {
-                ctx.beginPath(); ctx.moveTo(c * SIZE, 0); ctx.lineTo(c * SIZE, ROWS * SIZE); ctx.stroke();
-            }
+            ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 1;
+            for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r * SIZE); ctx.lineTo(COLS * SIZE, r * SIZE); ctx.stroke(); }
+            for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(c * SIZE, 0); ctx.lineTo(c * SIZE, ROWS * SIZE); ctx.stroke(); }
 
-            // Draw Placed Blocks
             for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    if (board[r][c] !== 0) {
-                        drawBlock(c * SIZE, r * SIZE, board[r][c]);
-                    }
-                }
+                for (let c = 0; c < COLS; c++) { if (board[r][c] !== 0) drawBlock(c * SIZE, r * SIZE, board[r][c], SIZE); }
             }
 
-            // Draw Tray Background area
-            ctx.fillStyle = "rgba(0,0,0,0.4)";
-            ctx.fillRect(0, 400, 400, 120);
+            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(0, 400, 400, 120);
 
-            // Draw Tray Shapes
             let offsetX = 25;
             for (let i = 0; i < 3; i++) {
                 if (!trayShapes[i].used) {
-                    drawShape(trayShapes[i].matrix, offsetX, TRAY_Y + 10, window.currentUser.activeSkin, i === selectedTrayIndex);
+                    if (isDragging && draggedIndex === i) drawShape(trayShapes[i].matrix, mouseX - dragOffsetX, mouseY - dragOffsetY, window.currentUser.activeSkin, SIZE);
+                    else drawShape(trayShapes[i].matrix, offsetX, TRAY_Y + 10, window.currentUser.activeSkin, 22);
                 }
                 offsetX += 125;
             }
@@ -426,76 +458,80 @@ const firebaseConfig = {
             return skin;
         }
 
-        function drawBlock(x, y, skin) {
-            fillRoundRect(x + 2, y + 2, SIZE - 4, SIZE - 4, 6, getBlockColor(skin));
-            // Add a slight top highlight for 3D effect
-            fillRoundRect(x + 2, y + 2, SIZE - 4, 4, 4, "rgba(255,255,255,0.2)");
+        function drawBlock(x, y, skin, blockSize) {
+            let padding = blockSize === SIZE ? 2 : 1;
+            fillRoundRect(x + padding, y + padding, blockSize - padding*2, blockSize - padding*2, 4, getBlockColor(skin));
+            fillRoundRect(x + padding, y + padding, blockSize - padding*2, blockSize * 0.15, 3, "rgba(255,255,255,0.2)");
         }
 
-        function drawShape(matrix, x, y, skin, isSelected) {
-            let miniSize = 22;
-            let displayColor = skin.startsWith('legendary') ? '#f1c40f' : skin;
-            
+        function drawShape(matrix, x, y, skin, renderSize) {
+            let displayColor = skin.startsWith('legendary') ? (isDragging ? getBlockColor(skin) : '#f1c40f') : skin;
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < matrix[r].length; c++) {
-                    if (matrix[r][c]) {
-                        fillRoundRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2, 4, displayColor);
-                        if (isSelected) {
-                            ctx.strokeStyle = "#fff";
-                            ctx.lineWidth = 2;
-                            ctx.beginPath();
-                            ctx.roundRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2, 4);
-                            ctx.stroke();
-                        }
-                    }
+                    if (matrix[r][c]) drawBlock(x + c * renderSize, y + r * renderSize, displayColor, renderSize);
                 }
             }
         }
 
-        function handleMouseClick(e) {
+        // --- PHYSICS ---
+        function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            let clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
+        }
 
+        function pointerDown(e) {
+            if(e.type === 'touchstart') e.preventDefault();
+            let pos = getPointerPos(e); mouseX = pos.x; mouseY = pos.y;
             if (mouseY > 400) {
-                if (mouseX < 133 && !trayShapes[0].used) selectedTrayIndex = 0;
-                else if (mouseX > 133 && mouseX < 266 && !trayShapes[1].used) selectedTrayIndex = 1;
-                else if (mouseX > 266 && !trayShapes[2].used) selectedTrayIndex = 2;
-                return;
-            }
-
-            if (mouseY < 400 && selectedTrayIndex !== -1) {
-                let gridC = Math.floor(mouseX / SIZE);
-                let gridR = Math.floor(mouseY / SIZE);
-                
-                if (canPlaceShape(trayShapes[selectedTrayIndex].matrix, gridR, gridC)) {
-                    placeShape(trayShapes[selectedTrayIndex].matrix, gridR, gridC);
-                    trayShapes[selectedTrayIndex].used = true;
-                    selectedTrayIndex = -1;
-                    
-                    checkLines();
-                    
-                    if (trayShapes.every(s => s.used)) refillTray();
-                    
-                    if (isGameOver()) {
-                        setTimeout(() => {
-                            alert("Sequence Terminated. Final Score: " + score);
-                            score = 0;
-                            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-                            document.getElementById('currentScoreDisplay').innerText = score;
-                            refillTray();
-                        }, 100);
+                let offsetX = 25;
+                for (let i = 0; i < 3; i++) {
+                    if (!trayShapes[i].used) {
+                        let shapeW = trayShapes[i].matrix[0].length * 22; let shapeH = trayShapes[i].matrix.length * 22;
+                        if (mouseX >= offsetX - 15 && mouseX <= offsetX + shapeW + 15 && mouseY >= TRAY_Y && mouseY <= TRAY_Y + 20 + shapeH) {
+                            isDragging = true; draggedIndex = i;
+                            let relX = (mouseX - offsetX) / 22; let relY = (mouseY - (TRAY_Y + 10)) / 22;
+                            dragOffsetX = relX * SIZE; dragOffsetY = e.type === 'touchstart' ? (relY * SIZE) + 40 : (relY * SIZE);
+                            break;
+                        }
                     }
+                    offsetX += 125;
                 }
             }
+        }
+
+        function pointerMove(e) { if (!isDragging) return; if(e.type === 'touchmove') e.preventDefault(); let pos = getPointerPos(e); mouseX = pos.x; mouseY = pos.y; }
+
+        function pointerUp(e) {
+            if (!isDragging) return;
+            let gridC = Math.round((mouseX - dragOffsetX) / SIZE); let gridR = Math.round((mouseY - dragOffsetY) / SIZE);
+            
+            if (canPlaceShape(trayShapes[draggedIndex].matrix, gridR, gridC)) {
+                placeShape(trayShapes[draggedIndex].matrix, gridR, gridC);
+                trayShapes[draggedIndex].used = true;
+                checkLines();
+                if (trayShapes.every(s => s.used)) refillTray();
+                
+                syncCloudSave(); // Explicitly sync after a successful move
+
+                if (isGameOver()) {
+                    setTimeout(() => {
+                        alert("GAME OVER! Final Score: " + score);
+                        window.currentUser.activeGame.inProgress = false;
+                        DB.saveUser(window.currentUser);
+                        window.toggleGame(false); // Return to lobby
+                    }, 100);
+                }
+            }
+            isDragging = false; draggedIndex = -1; 
         }
 
         function canPlaceShape(matrix, startR, startC) {
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < matrix[r].length; c++) {
                     if (matrix[r][c]) {
-                        let targetR = startR + r;
-                        let targetC = startC + c;
+                        let targetR = startR + r; let targetC = startC + c;
                         if (targetR >= ROWS || targetC >= COLS || targetR < 0 || targetC < 0 || board[targetR][targetC] !== 0) return false;
                     }
                 }
@@ -504,32 +540,26 @@ const firebaseConfig = {
         }
 
         function placeShape(matrix, startR, startC) {
-            let blocksPlaced = 0;
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < matrix[r].length; c++) {
-                    if (matrix[r][c]) {
-                        board[startR + r][startC + c] = window.currentUser.activeSkin;
-                        blocksPlaced++;
-                    }
+                    if (matrix[r][c]) { board[startR + r][startC + c] = window.currentUser.activeSkin; }
                 }
             }
-            addScore(blocksPlaced);
+            // Add point per block placed
+            let points = matrix.flat().filter(Boolean).length;
+            addScore(points);
         }
 
         function checkLines() {
-            let rowsToClear = [];
-            let colsToClear = [];
-
+            let rowsToClear = []; let colsToClear = [];
             for (let r = 0; r < ROWS; r++) if (board[r].every(cell => cell !== 0)) rowsToClear.push(r);
             for (let c = 0; c < COLS; c++) {
                 let isFull = true;
                 for (let r = 0; r < ROWS; r++) { if (board[r][c] === 0) { isFull = false; break; } }
                 if (isFull) colsToClear.push(c);
             }
-
             rowsToClear.forEach(r => { for (let c = 0; c < COLS; c++) board[r][c] = 0; });
             colsToClear.forEach(c => { for (let r = 0; r < ROWS; r++) board[r][c] = 0; });
-
             let linesCleared = rowsToClear.length + colsToClear.length;
             if (linesCleared > 0) addScore(linesCleared * 10 + (linesCleared > 1 ? 20 : 0));
         }
@@ -538,9 +568,7 @@ const firebaseConfig = {
             for (let i = 0; i < 3; i++) {
                 if (!trayShapes[i].used) {
                     for (let r = 0; r < ROWS; r++) {
-                        for (let c = 0; c < COLS; c++) {
-                            if (canPlaceShape(trayShapes[i].matrix, r, c)) return false;
-                        }
+                        for (let c = 0; c < COLS; c++) { if (canPlaceShape(trayShapes[i].matrix, r, c)) return false; }
                     }
                 }
             }
