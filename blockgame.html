@@ -110,7 +110,7 @@
                 <hr style="width: 100%;">
                 
                 <div style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="pullsDisplay">0</span> Pulls</span></button>
+                    <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="sDisplay">0</span> s</span></button>
                     <button class="btn-shop" onclick="window.openModal('shardShopModal')">Shard Shop<br><span style="font-size:12px; font-weight:normal;"><span id="shardsDisplay">0</span> Shards</span></button>
                 </div>
                 
@@ -147,8 +147,8 @@
         <div id="gachaTempleModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2 style="color: #f1c40f;">Gacha Temple</h2>
-            <p>Spend 1 Data Pull to acquire a random skin.</p>
-            <button class="btn-gacha" onclick="window.executeRoll('pull')">Rip Pack (Cost: 1 Pull)</button>
+            <p>Spend 1 Data  to acquire a random skin.</p>
+            <button class="btn-gacha" onclick="window.executeRoll('')">Rip Pack (Cost: 1 )</button>
             <div id="gachaResultArea" style="margin-top: 20px; display: none;">
                 <div id="gachaVisual" style="width: 60px; height: 60px; margin: 0 auto; border-radius: 8px;"></div>
                 <h3 id="gachaSkinName" style="margin: 10px 0;"></h3>
@@ -169,7 +169,7 @@
         <div id="achieveModal" class="modal-box" style="display: none;">
             <div class="close-btn" onclick="window.closeModal()">&times;</div>
             <h2>Achievements</h2>
-            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +1 Gacha Pull.</p>
+            <p style="font-size: 12px; color: #aaa;">Every 200 points grants +5 Gacha Pull.</p>
             <ul id="achievementList" class="achieve-list"></ul>
         </div>
 
@@ -451,7 +451,7 @@ const firebaseConfig = {
             score += points; document.getElementById('currentScoreDisplay').innerText = score;
             let user = window.currentUser; let milestones = Math.floor(score / 200);
             if (user.achievements['score_' + milestones * 200] === undefined && score >= 200) {
-                user.pulls += 1; user.achievements['score_' + milestones * 200] = true;
+                user.pulls += 5; user.achievements['score_' + milestones * 200] = true;
             }
             if (score > user.highScore) user.highScore = score;
             syncCloudSave();
