@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crystal Jumper: Perfect Hitbox Edition</title>
+    <title>Crystal Jumper: The Power-Up Update</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -48,7 +48,7 @@
 
 <script>
 // ==========================================
-// 1. FIREBASE CONFIGURATION
+// 1. FIREBASE CONFIGURATION (FIXED!)
 // ==========================================
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -61,6 +61,7 @@ const firebaseConfig = {
   measurementId: "G-5WK2XBQTBV"
 };
 
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -71,20 +72,32 @@ async function fetchCloudData(username) {
         const doc = await db.collection("players").doc(username).get();
         if (doc.exists) return doc.data();
         else return { gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 };
-    } catch (e) { return { gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 }; }
+    } catch (e) { 
+        console.error(e);
+        return { gems: 15000, shards: 0, unlocked: [0], equipped_id: 0, high_score: 0 }; 
+    }
 }
-function syncToCloud() { if (currentPlayerId) db.collection("players").doc(currentPlayerId).set(saveData, { merge: true }); }
+
+function syncToCloud() { 
+    if (currentPlayerId) db.collection("players").doc(currentPlayerId).set(saveData, { merge: true }); 
+}
+
 async function fetchLeaderboard() {
     try {
         const snap = await db.collection("players").orderBy("high_score", "desc").limit(5).get();
         leaderboardData = []; snap.forEach(doc => leaderboardData.push({ name: doc.id, score: doc.data().high_score || 0 }));
-    } catch (e) {}
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 function attemptLogin() {
     let idInput = document.getElementById("player-id").value.trim().toLowerCase();
     if (idInput === "") return alert("Please enter a Player ID!");
-    document.querySelector(".login-btn").style.display = "none"; document.getElementById("loading-text").style.display = "block";
+    
+    document.querySelector(".login-btn").style.display = "none"; 
+    document.getElementById("loading-text").style.display = "block";
+    
     fetchCloudData(idInput).then(data => {
         currentPlayerId = idInput; saveData = data;
         fetchLeaderboard().then(() => {
@@ -373,15 +386,18 @@ class Player {
             case "Sakura": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [255,180,200], "leaf")); break;
             case "Slime": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [100,255,50], "slime")); break;
             case "Ash": for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [80,80,80], "ash")); break;
+            
             case "Amethyst": for(let i=0;i<10;i++) particles.push(new Particle(cx, cy, [150,50,255], "sparkle")); break;
             case "Glacier": for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [150,255,255], "snow")); break;
             case "Toxic": for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [180,255,0], "toxic")); break;
+            
             case "Bloodmoon": particles.push(new Particle(cx, cy, [200,30,30], "wave")); for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [200,30,30], "blood")); break;
             case "Neon": particles.push(new Particle(cx, cy, [0,255,255], "dash")); particles.push(new Particle(cx, cy, [255,0,255], "dash")); break;
             case "Phantom": for(let i=0;i<6;i++) particles.push(new Particle(cx, cy, [200,220,255], "ghost")); break;
             case "Plasma": for(let i=0;i<15;i++) particles.push(new Particle(cx, cy, [255,50,150], "plasma")); break;
             case "Solar": particles.push(new Particle(cx, cy, [255,150,0], "wave")); for(let i=0;i<8;i++) particles.push(new Particle(cx, cy, [255,150,0], "solar")); break;
             case "Void": particles.push(new Particle(cx, cy, [40,0,60], "void")); break;
+            
             case "INFERNO": particles.push(new Particle(cx, cy, [255,50,0], "wave")); for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [255,100,0], "fire")); break;
             case "GALAXY": particles.push(new Particle(cx, cy, [200,100,255], "wave")); for(let i=0;i<12;i++) particles.push(new Particle(cx, cy, [200,100,255], "star")); break;
             case "ABYSSAL": particles.push(new Particle(cx, cy, [0,255,255], "wave")); particles.push(new Particle(cx, cy, [255,0,255], "wave")); break;
@@ -392,6 +408,7 @@ class Player {
         let vx = game_speed;
         if(this.iframes > 0) this.iframes--;
 
+        // Demon Wings
         if (this.demon > 0 && this.jetpack <= 0) {
             this.demon--;
             if (isPointerDown) {
@@ -400,6 +417,7 @@ class Player {
             } else this.vy += this.gravity * 0.5; 
         }
 
+        // Jetpack
         if(this.jetpack>0){ 
             this.jetpack--; vx=18; this.y += (150 - this.y) * 0.1; this.vy = 0; this.magnet = Math.max(this.magnet, 5); 
             
@@ -424,12 +442,14 @@ class Player {
 
         for(let p of pads) if(p.active && AABB(this,p) && this.vy>=0){ this.jump(true); p.timer=15; }
         
+        // Power Up Collection
         for(let i of items) if(i.active && AABB(this,i)){ 
             i.active=false;
             if(i.pType===0) this.jetpack=300; else if(i.pType===1) this.magnet=600; else if(i.pType===2) this.shield=true; else if(i.pType===3) this.angel=true; else if(i.pType===4) this.demon=600; 
             for(let k=0;k<20;k++) particles.push(new Particle(this.x+15, this.y+20, [255,255,255], "sparkle")); 
         }
 
+        // Magnet Logic
         if (this.magnet > 0) {
             this.magnet--;
             if (this.skinName === "DRAGON WARRIOR" && frames%5===0) particles.push(new Particle(this.x+15, this.y+20, [255,215,0], "wave"));
@@ -437,6 +457,7 @@ class Player {
             gems.forEach(pull); collect_shards.forEach(pull);
         }
 
+        // Death & Shield/Angel Logic
         let dead = this.y > 650;
         if (this.iframes <= 0 && this.jetpack <= 0) {
             for (let h of hazards) if (h.active && AABB(this, h)) {
@@ -462,6 +483,7 @@ class Player {
 
         this.trail.push({x:this.x+this.w/2, y:this.y+this.h/2}); if(this.trail.length>12) this.trail.shift();
         
+        // --- 20 UNIQUE PASSIVE VFX (Running) ---
         if(this.onGround && this.jetpack<=0 && Math.random()<0.3){ 
             let cx=this.x+15; let cy=this.y+this.h;
             switch(this.skinName) {
@@ -476,6 +498,7 @@ class Player {
             }
         }
         
+        // Always-on Ambient VFX
         if (Math.random() < 0.2) {
             let cx = this.x+15; let cy = this.y+20;
             switch(this.skinName) {
@@ -497,6 +520,17 @@ class Player {
         if (this.iframes > 0 && frames % 4 < 2) return; 
         drawKnightModel(ctx, this.x+15, this.y+20, this, true, frames, this);
     }
+}
+
+function drawStaticSkin(ctx, cx, cy, skin, isUnlocked, scale=1) {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
+    if (!isUnlocked) {
+        ctx.fillStyle = "#1a1a24"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, 23); ctx.lineTo(15, 23); ctx.fill();
+        ctx.fillStyle = "#202030"; ctx.beginPath(); ctx.arc(0, -8, 11, 0, Math.PI*2); ctx.fill();
+        drawText("?", 0, -2, 20, "#505064"); drawText("LOCKED", 0, 40, 10, "#505064"); ctx.restore(); return;
+    }
+    drawKnightModel(ctx, 0, 0, skin, false, frames, null);
+    ctx.restore();
 }
 
 function drawBackground() {
@@ -578,7 +612,6 @@ function rollGacha() {
 
 const player = new Player(); const preview = new Player();
 
-// --- Main Input Router ---
 function handleCanvasClick(mx, my) {
     if (state === "LOGIN") return;
 
@@ -781,7 +814,7 @@ function draw() {
             ctx.fillStyle = vault_sel===i ? "rgba(0,255,200,0.2)" : "rgba(10, 10, 15, 0.8)"; 
             ctx.strokeStyle = saveData.equipped_id === SKINS[i].id ? "#00ffc8" : vault_sel===i ? "white" : isUnl ? RARITY_COLORS[SKINS[i].rarity] : "#202030"; 
             ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(x, y, 70, 80, 8); ctx.fill(); ctx.stroke();
-            drawStaticSkin(ctx, x+35, y+35, SKINS[i], isUnl, 0.8);
+            drawStaticSkin(ctx, x+35, y+45, SKINS[i], isUnl, 1.0);
         }
 
         let s = SKINS[vault_sel]; let isUnl = saveData.unlocked.includes(s.id);
@@ -852,10 +885,12 @@ function draw() {
         drawButton(50, 60, 100, 35, "◀ BACK", "rgba(50,50,60,0.8)", "rgba(80,80,90,0.8)", "white", 14);
         drawPanel(250, 100, 400, 400, "GACHA TEMPLE");
         
+        // Pedestal
         ctx.fillStyle = "rgba(30,30,40,0.8)"; ctx.beginPath(); ctx.ellipse(450, 350, 80, 20, 0, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "rgba(20,20,30,0.8)"; ctx.fillRect(410, 350, 80, 80);
         ctx.fillStyle = "rgba(0,255,200,0.2)"; ctx.beginPath(); ctx.ellipse(450, 350, 60, 10, 0, 0, Math.PI*2); ctx.fill();
         
+        // Orb
         ctx.fillStyle = "rgba(100,100,150,0.8)"; ctx.beginPath(); ctx.arc(450, 280, 40, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(450, 280, 20, 0, Math.PI*2); ctx.fill();
 
@@ -866,7 +901,7 @@ function draw() {
         let pct = 1 - (gacha_timer / 240); 
         let col = getGachaColor(pct, dramaType, gacha_target.rarity);
 
-        ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.1)`; ctx.beginPath(); ctx.arc(450, 300, 100 + pct*200, 0, Math.PI*2); ctx.fill(); 
+        ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},0.1)`; ctx.beginPath(); ctx.arc(450, 300, 100 + pct*200, 0, Math.PI*2); ctx.fill(); // Glow
         ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.beginPath(); ctx.arc(450, 300, 40 + pct*40, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(450, 300, 20 + pct*20, 0, Math.PI*2); ctx.fill(); 
         
@@ -874,14 +909,14 @@ function draw() {
         drawText("SUMMONING...", 450, 100, 48, "white"); 
 
     } else if (state === "GACHA_RESULT") {
-        drawBackground(); 
+        drawBackground(); // Nice background for result
         ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(0,0,900,600);
         for(let p of particles) p.draw(ctx);
         
         let col = RARITY_COLORS[gacha_target.rarity];
         drawText(`PULLED: ${gacha_target.name}`, 450, 120, 48, col); drawText(`Rarity: ${gacha_target.rarity}`, 450, 170, 24, col);
         
-        drawStaticSkin(ctx, 450, 320, gacha_target, true, 4.0); 
+        drawStaticSkin(ctx, 450, 320, gacha_target, true, 4.0); // MASSIVE PREVIEW
 
         if (gacha_msg === "DUPLICATE") { drawText("DUPLICATE DETECTED", 450, 450, 24, "#ff3232"); drawText(`Converted to +${shard_reward} Shards`, 450, 480, 24, "#ffd700"); }
         else drawText("NEW SKIN UNLOCKED!", 450, 460, 24, "#00ffc8");
