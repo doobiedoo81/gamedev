@@ -209,7 +209,8 @@ const firebaseConfig = {
                 
                 const newUser = { 
                     username, highScore: 0, pulls: 1, shards: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
-                    activeGame: { inProgress: false, score: 0, board: [], tray: [] }
+                    // FIX: Use strings for the nested arrays
+                    activeGame: { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" }
                 };
                 await setDoc(userRef, newUser); return newUser;
             },
@@ -382,22 +383,21 @@ const firebaseConfig = {
             [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,1,0]], [[1,1],[0,1],[0,1]]
         ];
 
-        // START OR PAUSE
+        /// START OR PAUSE
         window.toggleGame = function(starting) {
             if (starting) {
-                // Toggles inside the left column
                 document.getElementById('mainMenu').style.display = 'none';
                 document.getElementById('gameUI').style.display = 'flex';
                 
-                // FIX: If this is an older account without a save file, build one so it doesn't crash
                 if (!window.currentUser.activeGame) {
                     window.currentUser.activeGame = { inProgress: false };
                 }
                 
                 if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
-                    board = window.currentUser.activeGame.board;
+                    // FIX: Parse the JSON strings back into arrays
+                    board = JSON.parse(window.currentUser.activeGame.boardStr);
                     score = window.currentUser.activeGame.score;
-                    trayShapes = window.currentUser.activeGame.tray;
+                    trayShapes = JSON.parse(window.currentUser.activeGame.trayStr);
                 } else {
                     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
                     score = 0;
@@ -423,6 +423,7 @@ const firebaseConfig = {
                 window.refreshMenuUI();
             }
         }
+        }
         window.restartGame = function() {
             if(confirm("Are you sure? Current progress will be lost.")) {
                 window.currentUser.activeGame.inProgress = false;
@@ -433,10 +434,15 @@ const firebaseConfig = {
 
         function syncCloudSave() {
             let user = window.currentUser;
-            user.activeGame = { inProgress: true, score: score, board: board, tray: trayShapes };
+            // FIX: Convert the 2D arrays to JSON strings to bypass Firebase nested array limits
+            user.activeGame = { 
+                inProgress: true, 
+                score: score, 
+                boardStr: JSON.stringify(board), 
+                trayStr: JSON.stringify(trayShapes) 
+            };
             DB.saveUser(user);
         }
-
         function refillTray() {
             trayShapes = [];
             for (let i = 0; i < 3; i++) trayShapes.push({ matrix: SHAPE_LIBRARY[Math.floor(Math.random() * SHAPE_LIBRARY.length)], used: false });
