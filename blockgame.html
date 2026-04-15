@@ -3,58 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <title>Block Puzzle: Cloud Legends</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px;}
-        h1 { margin-bottom: 5px; }
-        .container { display: flex; gap: 20px; }
-        .panel { background: #1e1e24; padding: 20px; border-radius: 10px; width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        canvas { background-color: #2b2b36; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; border: 2px solid #333; }
+        /* Overall Page Theme */
+        body { 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #ecf0f1; 
+            font-family: 'Poppins', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0;
+            min-height: 100vh;
+            padding-top: 30px;
+        }
         
-        button { background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
-        button:hover { background: #2980b9; }
-        input { padding: 8px; width: 90%; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #333; color: white; }
+        h1 { margin-bottom: 5px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h2, h3 { margin-top: 0; color: #fff; }
+        hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 20px 0; }
+
+        .container { display: flex; gap: 30px; align-items: flex-start; margin-top: 20px; }
         
-        .gacha-btn { background: #f1c40f; color: #333; font-size: 16px; }
-        .gacha-btn:hover { background: #f39c12; }
+        /* Glassmorphism Panels */
+        .panel { 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            padding: 25px; 
+            border-radius: 16px; 
+            width: 280px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+
+        /* The Game Board */
+        canvas { 
+            background-color: rgba(20, 20, 30, 0.6); 
+            border-radius: 12px; 
+            box-shadow: 0 15px 50px rgba(0,0,0,0.6); 
+            cursor: pointer; 
+            border: 1px solid rgba(255,255,255,0.05); 
+        }
         
+        /* Clean Inputs & Buttons */
+        input { 
+            padding: 12px; 
+            width: 100%; 
+            box-sizing: border-box;
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            background: rgba(0,0,0,0.2); 
+            color: white; 
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+        }
+        input:focus { border-color: #3498db; }
+        
+        button { 
+            background: linear-gradient(135deg, #3498db, #2980b9); 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px; 
+            font-weight: 600; 
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
+        button:active { transform: translateY(1px); }
+        
+        /* Special Gacha Button */
+        .gacha-btn { 
+            background: linear-gradient(135deg, #f1c40f, #e67e22); 
+            color: #2c3e50; 
+            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+        }
+        .gacha-btn:hover { box-shadow: 0 6px 20px rgba(241, 196, 15, 0.5); }
+        
+        /* Data Displays */
+        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .stat-value { font-weight: 800; font-size: 1.1em; }
+        .score-highlight { color: #f1c40f; font-size: 1.3em; }
+
+        /* Tiers */
         .tier-Common { color: #bdc3c7; }
         .tier-Rare { color: #3498db; }
         .tier-Epic { color: #9b59b6; font-weight: bold; }
-        .tier-Legendary { color: #ff9f43; font-weight: bold; animation: legendaryGlow 1.5s infinite alternate; }
+        .tier-Legendary { 
+            color: #ff9f43; 
+            font-weight: 800; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: legendaryGlow 1.5s infinite alternate; 
+        }
         
         @keyframes legendaryGlow {
             from { text-shadow: 0 0 5px #ff9f43; }
-            to { text-shadow: 0 0 20px #ff9f43, 0 0 30px #ffce6b; }
+            to { text-shadow: 0 0 15px #ff9f43, 0 0 25px #ffce6b; }
         }
 
-        .vault-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .skin-swatch { width: 30px; height: 30px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
-        .skin-swatch.active { border-color: white; }
+        /* Skin Vault Grid */
+        .vault-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .skin-swatch { 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            border: 2px solid rgba(255,255,255,0.1); 
+            transition: all 0.2s ease;
+        }
+        .skin-swatch:hover { transform: scale(1.1); }
+        .skin-swatch.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); transform: scale(1.1); }
+
+        /* Leaderboard */
+        #leaderboardList { padding-left: 0; list-style-position: inside; margin: 0; }
+        #leaderboardList li { 
+            background: rgba(0,0,0,0.2); 
+            margin-bottom: 8px; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            display: flex; 
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Block Puzzle: Cloud Legends</h1>
+    <h1>CLOUD LEGENDS</h1>
     
-    <div id="loginSection" class="panel" style="margin-bottom: 20px; text-align: center;">
-        <h3>Connect to Server</h3>
+    <div id="loginSection" class="panel" style="margin-top: 50px; text-align: center;">
+        <h3 style="margin-bottom: 20px;">Connect Identity</h3>
         <input type="text" id="usernameInput" placeholder="Enter Username">
-        <button onclick="window.login()">Login / Register</button>
+        <button onclick="window.login()">Initialize Game</button>
     </div>
 
     <div id="gameUI" class="container" style="display:none;">
+        
         <div class="panel">
-            <h2 id="playerName">Player</h2>
-            <p>High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold;">0</span></p>
-            <p>Current Score: <span id="currentScoreDisplay">0</span></p>
+            <h2 id="playerName" style="color: #3498db;">Player</h2>
+            <div class="stat-row"><span>High Score:</span> <span id="highScoreDisplay" class="stat-value score-highlight">0</span></div>
+            <div class="stat-row"><span>Current Score:</span> <span id="currentScoreDisplay" class="stat-value">0</span></div>
             <hr>
-            <h3>Gacha & Shards</h3>
-            <p>Pulls: <span id="pullsDisplay">0</span> | Shards: <span id="shardsDisplay">0</span>/100</p>
-            <button class="gacha-btn" onclick="window.pullGacha()">Rip a Pack (Cost: 1 Pull)</button>
-            <button onclick="window.craftSkin()">Craft Skin (Cost: 100 Shards)</button>
-            <p id="gachaResult" style="text-align:center; font-weight:bold; min-height: 20px; margin-top:10px;"></p>
+            <h3>Armory</h3>
+            <div class="stat-row"><span>Data Pulls:</span> <span id="pullsDisplay" class="stat-value" style="color: #f1c40f;">0</span></div>
+            <div class="stat-row"><span>Shards:</span> <span class="stat-value"><span id="shardsDisplay">0</span><span style="font-size:0.7em; color:#888;">/100</span></span></div>
+            <button class="gacha-btn" onclick="window.pullGacha()">Extract Skin (1 Pull)</button>
+            <button onclick="window.craftSkin()">Synthesize (100 Shards)</button>
+            <p id="gachaResult" style="text-align:center; font-size: 0.9em; min-height: 40px; margin-top:15px;"></p>
             <hr>
-            <h3>Skin Vault</h3>
+            <h3>Vault</h3>
             <div id="vaultGrid" class="vault-grid"></div>
         </div>
 
@@ -63,8 +166,8 @@
         </div>
 
         <div class="panel">
-            <h3>Global Top 10</h3>
-            <ol id="leaderboardList" style="padding-left: 20px; color: #bdc3c7;"></ol>
+            <h3 style="color: #2ecc71;">Global Top 10</h3>
+            <ol id="leaderboardList"></ol>
         </div>
     </div>
 
@@ -74,7 +177,7 @@
             from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // ==========================================
-        // 1. REPLACE THIS WITH YOUR FIREBASE CONFIG
+        // 1. PASTE FIREBASE CONFIG HERE
         // ==========================================
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -121,11 +224,11 @@ const firebaseConfig = {
         // 3. META SYSTEM & GACHA
         // ==========================================
         const SKIN_POOL = [
-            { name: "Basic Red", color: "#e74c3c", tier: "Common", weight: 40 },
-            { name: "Basic Blue", color: "#3498db", tier: "Common", weight: 40 },
-            { name: "Neon Pink", color: "#fd79a8", tier: "Rare", weight: 30 },
+            { name: "Crimson Core", color: "#e74c3c", tier: "Common", weight: 40 },
+            { name: "Cobalt Drive", color: "#3498db", tier: "Common", weight: 40 },
+            { name: "Neon Matrix", color: "#fd79a8", tier: "Rare", weight: 30 },
             { name: "Toxic Cyan", color: "#00cec9", tier: "Rare", weight: 30 },
-            { name: "Royal Purple", color: "#9b59b6", tier: "Epic", weight: 10 },
+            { name: "Amethyst", color: "#9b59b6", tier: "Epic", weight: 10 },
             { name: "Galaxy Gold", color: "legendary_gold", tier: "Legendary", weight: 2 },
             { name: "Quantum Void", color: "legendary_void", tier: "Legendary", weight: 1 }
         ];
@@ -135,9 +238,9 @@ const firebaseConfig = {
         window.login = async function() {
             const input = document.getElementById('usernameInput');
             const username = input.value.trim();
-            if (!username) return alert("Enter a name!");
+            if (!username) return;
             
-            input.value = "Connecting...";
+            input.value = "Authenticating...";
             input.disabled = true;
 
             try {
@@ -148,7 +251,7 @@ const firebaseConfig = {
                 await window.refreshUI();
                 initGame();
             } catch (error) {
-                alert("Firebase Error! Did you update the config?\n" + error.message);
+                alert("Connection failed. Check Firebase config.\n" + error.message);
                 input.value = username;
                 input.disabled = false;
             }
@@ -156,42 +259,40 @@ const firebaseConfig = {
 
         window.refreshUI = async function() {
             const user = window.currentUser;
-            document.getElementById('playerName').innerText = user.username;
+            document.getElementById('playerName').innerText = user.username.toUpperCase();
             document.getElementById('highScoreDisplay').innerText = user.highScore;
             document.getElementById('pullsDisplay').innerText = user.pulls;
             document.getElementById('shardsDisplay').innerText = user.shards;
             
-            // Build Vault
             const vault = document.getElementById('vaultGrid');
             vault.innerHTML = '';
             user.vault.forEach(skin => {
                 let div = document.createElement('div');
                 div.className = 'skin-swatch' + (user.activeSkin === skin ? ' active' : '');
-                if(skin.startsWith('legendary')) div.style.background = skin === 'legendary_gold' ? '#f1c40f' : '#8e44ad';
+                if(skin.startsWith('legendary')) div.style.background = skin === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)';
                 else div.style.backgroundColor = skin;
                 div.onclick = async () => { user.activeSkin = skin; await DB.saveUser(user); window.refreshUI(); };
                 vault.appendChild(div);
             });
 
-            // Build Leaderboard
             const lb = document.getElementById('leaderboardList');
             const liveLeaderboard = await DB.getLeaderboard();
             lb.innerHTML = '';
             liveLeaderboard.forEach(p => {
                 let li = document.createElement('li');
-                li.innerHTML = `<strong>${p.username}</strong> : ${p.score}`;
+                li.innerHTML = `<span style="font-weight:600;">${p.username}</span> <span style="color:#f1c40f; font-weight:800;">${p.score}</span>`;
                 lb.appendChild(li);
             });
         };
 
         window.pullGacha = function() {
-            if (window.currentUser.pulls < 1) return alert("Not enough Pulls!");
+            if (window.currentUser.pulls < 1) return;
             window.currentUser.pulls -= 1;
             executeRoll();
         };
 
         window.craftSkin = function() {
-            if (window.currentUser.shards < 100) return alert("Need 100 Shards!");
+            if (window.currentUser.shards < 100) return;
             window.currentUser.shards -= 100;
             executeRoll();
         };
@@ -212,10 +313,10 @@ const firebaseConfig = {
             if (user.vault.includes(pulledSkin.color)) {
                 let shardGain = pulledSkin.tier === "Legendary" ? 50 : pulledSkin.tier === "Epic" ? 25 : 10;
                 user.shards += shardGain;
-                resultText.innerHTML = `Duplicate <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>! Got ${shardGain} Shards.`;
+                resultText.innerHTML = `Duplicate <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>.<br>+${shardGain} Shards.`;
             } else {
                 user.vault.push(pulledSkin.color);
-                resultText.innerHTML = `NEW SKIN! <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>!`;
+                resultText.innerHTML = `Acquired: <br><span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>!`;
             }
             
             await DB.saveUser(user);
@@ -223,7 +324,7 @@ const firebaseConfig = {
         }
 
         // ==========================================
-        // 4. THE GAME ENGINE
+        // 4. THE GAME ENGINE (WITH ROUNDED BLOCKS)
         // ==========================================
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -236,13 +337,13 @@ const firebaseConfig = {
         let legendPhase = 0;
 
         const SHAPE_LIBRARY = [
-            [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]]
+            [[1]], [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1],[1,0]], [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,1,0]], [[1,1],[0,1],[0,1]]
         ];
 
         function initGame() {
             refillTray();
             canvas.addEventListener('mousedown', handleMouseClick);
-            setInterval(draw, 30); // 30ms loop for legendary animations
+            setInterval(draw, 30); 
         }
 
         function refillTray() {
@@ -257,81 +358,98 @@ const firebaseConfig = {
             document.getElementById('currentScoreDisplay').innerText = score;
             let user = window.currentUser;
             
-            // Achievement: Every 200 points grants a pull
             let milestones = Math.floor(score / 200);
             if (user.achievements['score_' + milestones * 200] === undefined && score >= 200) {
                 user.pulls += 1;
                 user.achievements['score_' + milestones * 200] = true;
-                alert("Achievement Unlocked! +1 Gacha Pull!");
+                // Soft notification instead of harsh alert
+                document.getElementById('gachaResult').innerHTML = `<span style="color:#2ecc71;">Milestone Reached! +1 Pull</span>`;
             }
 
             if (score > user.highScore) {
                 user.highScore = score;
                 await DB.saveUser(user);
-                window.refreshUI(); // Refresh leaderboard if score changed
+                window.refreshUI(); 
             } else {
-                DB.saveUser(user); // Save background progress
+                DB.saveUser(user);
             }
+        }
+
+        // Helper function to draw blocks with rounded corners
+        function fillRoundRect(x, y, w, h, radius, fillStyle) {
+            ctx.fillStyle = fillStyle;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, radius);
+            ctx.fill();
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            legendPhase += 0.1;
+            legendPhase += 0.05;
 
-            // Draw Board
+            // Draw Background Grid Lines
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            ctx.lineWidth = 1;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath(); ctx.moveTo(0, r * SIZE); ctx.lineTo(COLS * SIZE, r * SIZE); ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath(); ctx.moveTo(c * SIZE, 0); ctx.lineTo(c * SIZE, ROWS * SIZE); ctx.stroke();
+            }
+
+            // Draw Placed Blocks
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
-                    ctx.strokeStyle = "#3e3e4f";
-                    ctx.strokeRect(c * SIZE, r * SIZE, SIZE, SIZE);
                     if (board[r][c] !== 0) {
                         drawBlock(c * SIZE, r * SIZE, board[r][c]);
                     }
                 }
             }
 
-            // Draw Tray Separator
-            ctx.fillStyle = "#1e1e24";
-            ctx.fillRect(0, 400, 400, 10);
+            // Draw Tray Background area
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.fillRect(0, 400, 400, 120);
 
             // Draw Tray Shapes
-            let offsetX = 20;
+            let offsetX = 25;
             for (let i = 0; i < 3; i++) {
                 if (!trayShapes[i].used) {
-                    drawShape(trayShapes[i].matrix, offsetX, TRAY_Y, window.currentUser.activeSkin, i === selectedTrayIndex);
+                    drawShape(trayShapes[i].matrix, offsetX, TRAY_Y + 10, window.currentUser.activeSkin, i === selectedTrayIndex);
                 }
-                offsetX += 130;
+                offsetX += 125;
             }
+        }
+
+        function getBlockColor(skin) {
+            if (skin === 'legendary_gold') return `hsl(${(legendPhase * 40) % 360}, 90%, 55%)`;
+            if (skin === 'legendary_void') return Math.sin(legendPhase * 2) > 0 ? "#8e44ad" : "#2c3e50";
+            return skin;
         }
 
         function drawBlock(x, y, skin) {
-            if (skin === 'legendary_gold') {
-                ctx.fillStyle = `hsl(${(legendPhase * 20) % 360}, 100%, 50%)`;
-            } else if (skin === 'legendary_void') {
-                ctx.fillStyle = Math.sin(legendPhase) > 0 ? "#8e44ad" : "#2c3e50";
-            } else {
-                ctx.fillStyle = skin;
-            }
-            ctx.fillRect(x + 1, y + 1, SIZE - 2, SIZE - 2);
+            fillRoundRect(x + 2, y + 2, SIZE - 4, SIZE - 4, 6, getBlockColor(skin));
+            // Add a slight top highlight for 3D effect
+            fillRoundRect(x + 2, y + 2, SIZE - 4, 4, 4, "rgba(255,255,255,0.2)");
         }
 
         function drawShape(matrix, x, y, skin, isSelected) {
-            let miniSize = 25;
+            let miniSize = 22;
+            let displayColor = skin.startsWith('legendary') ? '#f1c40f' : skin;
+            
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < matrix[r].length; c++) {
                     if (matrix[r][c]) {
-                        if (skin.startsWith('legendary')) ctx.fillStyle = '#f1c40f'; // Static in tray
-                        else ctx.fillStyle = skin;
-                        
-                        ctx.fillRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2);
+                        fillRoundRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2, 4, displayColor);
                         if (isSelected) {
                             ctx.strokeStyle = "#fff";
                             ctx.lineWidth = 2;
-                            ctx.strokeRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2);
+                            ctx.beginPath();
+                            ctx.roundRect(x + c * miniSize, y + r * miniSize, miniSize - 2, miniSize - 2, 4);
+                            ctx.stroke();
                         }
                     }
                 }
             }
-            ctx.lineWidth = 1;
         }
 
         function handleMouseClick(e) {
@@ -339,15 +457,13 @@ const firebaseConfig = {
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // Tray click
             if (mouseY > 400) {
-                if (mouseX < 130 && !trayShapes[0].used) selectedTrayIndex = 0;
-                else if (mouseX > 130 && mouseX < 260 && !trayShapes[1].used) selectedTrayIndex = 1;
-                else if (mouseX > 260 && !trayShapes[2].used) selectedTrayIndex = 2;
+                if (mouseX < 133 && !trayShapes[0].used) selectedTrayIndex = 0;
+                else if (mouseX > 133 && mouseX < 266 && !trayShapes[1].used) selectedTrayIndex = 1;
+                else if (mouseX > 266 && !trayShapes[2].used) selectedTrayIndex = 2;
                 return;
             }
 
-            // Board click
             if (mouseY < 400 && selectedTrayIndex !== -1) {
                 let gridC = Math.floor(mouseX / SIZE);
                 let gridR = Math.floor(mouseY / SIZE);
@@ -363,7 +479,7 @@ const firebaseConfig = {
                     
                     if (isGameOver()) {
                         setTimeout(() => {
-                            alert("Game Over! Final Score: " + score);
+                            alert("Sequence Terminated. Final Score: " + score);
                             score = 0;
                             board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
                             document.getElementById('currentScoreDisplay').innerText = score;
