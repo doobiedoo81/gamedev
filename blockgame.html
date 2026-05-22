@@ -1,703 +1,701 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud Legends</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        body { 
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: #ecf0f1; font-family: 'Poppins', sans-serif; 
-            display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; padding-top: 20px;
-        }
-        
-        h1 { margin-bottom: 5px; font-weight: 800; text-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; }
-        h2, h3 { margin-top: 0; color: #fff; }
-        hr { border: 0; height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; }
-
-        .panel { 
-            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); 
-            padding: 25px; border-radius: 16px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); box-sizing: border-box; text-align: center;
-        }
-
-        .layout-wrapper { display: flex; gap: 30px; align-items: flex-start; justify-content: center; width: 100%; max-width: 900px; margin-top: 10px; padding-bottom: 30px; }
-        .main-column { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; }
-        .leaderboard-column { width: 100%; max-width: 300px; }
-
-        #loginSection { max-width: 350px; margin-top: 50px; }
-        #mainMenu { display: none; flex-direction: column; gap: 15px; align-items: center; width: 100%; }
-        #gameUI { display: none; flex-direction: column; align-items: center; width: 100%; }
-        
-        canvas { 
-            background-color: rgba(20, 20, 30, 0.6); border-radius: 12px; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.05); 
-            user-select: none; touch-action: none; max-width: 100%; height: auto; margin-bottom: 15px;
-        }
-        
-        input { padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-family: 'Poppins', sans-serif; outline: none; }
-        
-        button { 
-            background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; 
-            width: 100%; font-weight: 800; font-size: 16px; font-family: 'Poppins', sans-serif; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
-        
-        .btn-play { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); font-size: 18px; padding: 20px; }
-        .btn-gacha { background: linear-gradient(135deg, #f1c40f, #e67e22); color: #2c3e50; }
-        .btn-vault { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-        .btn-shop { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .btn-achieve { background: linear-gradient(135deg, #34495e, #2c3e50); }
-        .btn-danger { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; margin-top: 5px; }
-
-        .game-hud { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; align-items: center; }
-        .score-box { background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 20px; color: #f1c40f; }
-        .pause-btn { width: auto; padding: 10px 20px; margin: 0; background: rgba(255,255,255,0.1); font-size: 14px; }
-
-        #toast {
-            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background: linear-gradient(135deg, #f1c40f, #e67e22); color: #2c3e50;
-            padding: 12px 25px; border-radius: 30px; font-weight: 800; font-size: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000;
-            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none;
-        }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: #1e1e24; border: 1px solid rgba(255,255,255,0.2); padding: 30px; border-radius: 16px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; box-sizing: border-box; max-height: 80vh; overflow-y: auto;}
-        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; font-weight: bold; }
-        
-        .vault-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
-        .skin-swatch { width: 50px; height: 50px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; transition: all 0.2s ease; }
-        .skin-swatch.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.5); transform: scale(1.1); }
-        .skin-locked { background: #333 !important; color: #666; cursor: not-allowed; border-color: transparent; }
-
-        .tier-Common { color: #bdc3c7; } .tier-Rare { color: #3498db; } .tier-Epic { color: #9b59b6; font-weight: bold; }
-        .tier-Legendary { color: #ff9f43; font-weight: 800; text-transform: uppercase; animation: legendaryGlow 1.5s infinite alternate; }
-        @keyframes legendaryGlow { from { text-shadow: 0 0 5px #ff9f43; } to { text-shadow: 0 0 15px #ff9f43, 0 0 25px #ffce6b; } }
-
-        .achieve-list { text-align: left; font-size: 14px; color: #bdc3c7; }
-        .achieve-list li { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .achieve-done { color: #2ecc71; font-weight: bold; }
-
-        @media (max-width: 800px) {
-            .layout-wrapper { flex-direction: column; align-items: center; }
-            .leaderboard-column { max-width: 400px; width: 90%; }
-            .main-column { width: 90%; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom network planning sandbox</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f4ef;
+  --color-background-tertiary: #faf9f5;
+  --color-background-info: #e6f1fb;
+  --color-background-danger: #fcebeb;
+  --color-background-success: #eaf3de;
+  --color-background-warning: #faeeda;
+  --color-text-primary: #1f1e1d;
+  --color-text-secondary: #5f5e5a;
+  --color-text-tertiary: #888780;
+  --color-text-info: #185fa5;
+  --color-text-danger: #a32d2d;
+  --color-text-success: #3b6d11;
+  --color-text-warning: #854f0b;
+  --color-border-tertiary: rgba(0,0,0,0.15);
+  --color-border-secondary: rgba(0,0,0,0.3);
+  --color-border-primary: rgba(0,0,0,0.4);
+  --color-border-info: #378add;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #262624;
+    --color-background-secondary: #1f1e1d;
+    --color-background-tertiary: #181715;
+    --color-text-primary: #f5f4ef;
+    --color-text-secondary: #b4b2a9;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: rgba(255,255,255,0.15);
+    --color-border-secondary: rgba(255,255,255,0.3);
+    --color-border-primary: rgba(255,255,255,0.4);
+  }
+}
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: var(--font-sans);
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  display: flex;
+  justify-content: center;
+}
+.app-container {
+  width: 100%;
+  max-width: 720px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+button {
+  font-family: inherit;
+}
+</style>
 </head>
 <body>
+<div class="app-container">
+<style>
+.ns-root{font-family:var(--font-sans);color:var(--color-text-primary);font-size:14px;line-height:1.5}
+.ns-bar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;align-items:center}
+.ns-grp{display:flex;gap:4px;align-items:center;padding:4px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary)}
+.ns-grp-lbl{font-size:11px;color:var(--color-text-tertiary);padding:0 6px;border-right:0.5px solid var(--color-border-tertiary);margin-right:2px}
+.ns-btn{padding:5px 9px;border:0.5px solid transparent;border-radius:var(--border-radius-md);background:transparent;cursor:pointer;font-size:12px;font-family:inherit;color:var(--color-text-primary);display:inline-flex;align-items:center;gap:5px;line-height:1}
+.ns-btn:hover{background:var(--color-background-secondary)}
+.ns-btn.on{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.ns-btn .ti{font-size:14px}
+.ns-map{position:relative;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;background:#EEEBE2}
+.ns-svg{display:block;width:100%;height:auto;cursor:crosshair}
+.ns-svg.placing{cursor:copy}
+.ns-overlay{position:absolute;background:rgba(255,255,255,0.96);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 10px;font-size:11px}
+.ns-kpi{top:8px;right:8px;min-width:148px}
+.ns-detail{top:8px;left:8px;min-width:188px;max-width:228px;display:none}
+.ns-detail.show{display:block}
+.ns-legend{bottom:8px;right:8px;font-size:11px}
+.ns-tip{bottom:8px;left:8px;max-width:300px;font-size:11px;display:none;border-color:var(--color-border-info)}
+.ns-tip.show{display:block}
+.ns-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.ns-row .lab{color:var(--color-text-secondary)}
+.ns-row .val{font-weight:500;font-variant-numeric:tabular-nums}
+.ns-strong{color:var(--color-text-success)}
+.ns-weak{color:var(--color-text-danger)}
+.ns-mid{color:var(--color-text-warning)}
+.ns-divider{height:0.5px;background:var(--color-border-tertiary);margin:6px -10px}
+.ns-info{margin-top:10px;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;line-height:1.55}
+.ns-h{font-size:13px;font-weight:500;margin:0 0 6px}
+.ns-mini{font-size:11px;color:var(--color-text-tertiary);margin-top:4px}
+.ns-key{display:inline-flex;align-items:center;gap:4px;margin-right:10px}
+.ns-key i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.ns-tips-list{margin:6px 0 0 18px;padding:0}
+.ns-tips-list li{margin:4px 0}
+@keyframes nspulse{0%,100%{opacity:0.18}50%{opacity:0.38}}
+</style>
 
-    <div id="toast">Achievement Unlocked!</div>
+<h2 class="sr-only">Interactive telecom network planning simulator with city, suburban, rural, and indoor zones. Place equipment and click any location to inspect signal quality.</h2>
 
-    <h1>CLOUD LEGENDS</h1>
-    
-    <div id="loginSection" class="panel">
-        <h3 style="margin-bottom: 20px;">Connect Identity</h3>
-        <input type="text" id="usernameInput" placeholder="Enter User ID">
-        <button onclick="window.login()">Initialize Link</button>
+<div class="ns-root">
+
+  <div class="ns-bar">
+    <div class="ns-grp">
+      <span class="ns-grp-lbl">Mode</span>
+      <button class="ns-btn on" data-mode="inspect"><i class="ti ti-crosshair"></i>Inspect</button>
+      <button class="ns-btn" data-mode="remove"><i class="ti ti-trash"></i>Remove</button>
+    </div>
+    <div class="ns-grp">
+      <span class="ns-grp-lbl">Place</span>
+      <button class="ns-btn" data-place="macro"><i class="ti ti-broadcast"></i>Macro</button>
+      <button class="ns-btn" data-place="smallcell"><i class="ti ti-antenna"></i>Small cell</button>
+      <button class="ns-btn" data-place="das"><i class="ti ti-rss"></i>DAS</button>
+      <button class="ns-btn" data-place="wifi"><i class="ti ti-wifi"></i>Wi-Fi</button>
+      <button class="ns-btn" data-place="repeater"><i class="ti ti-arrows-right-left"></i>Repeater</button>
+    </div>
+  </div>
+
+  <div class="ns-bar">
+    <div class="ns-grp">
+      <span class="ns-grp-lbl">Scenario</span>
+      <button class="ns-btn on" data-scen="normal">Normal day</button>
+      <button class="ns-btn" data-scen="concert">Concert at arena</button>
+      <button class="ns-btn" data-scen="rush">Rush hour</button>
+      <button class="ns-btn" data-scen="weekend">Mall weekend</button>
+    </div>
+    <div class="ns-grp">
+      <span class="ns-grp-lbl">Layer</span>
+      <button class="ns-btn on" data-layer="coverage">Coverage</button>
+      <button class="ns-btn" data-layer="population">Population</button>
+      <button class="ns-btn" data-layer="quality">Quality</button>
+    </div>
+    <button class="ns-btn" id="ns-reset" style="border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);margin-left:auto"><i class="ti ti-refresh"></i>Reset</button>
+  </div>
+
+  <div class="ns-map">
+    <svg id="ns-svg" class="ns-svg" viewBox="0 0 680 560" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <pattern id="ns-field" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+          <rect width="14" height="14" fill="#D8E3C7"/>
+          <line x1="0" y1="7" x2="14" y2="7" stroke="#BFCFA2" stroke-width="0.6"/>
+        </pattern>
+        <pattern id="ns-trees" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+          <rect width="22" height="22" fill="#CCDCB0"/>
+          <circle cx="6" cy="6" r="3" fill="#7FA45E"/>
+          <circle cx="16" cy="14" r="3" fill="#7FA45E"/>
+        </pattern>
+      </defs>
+
+      <g id="ns-terrain">
+        <rect x="450" y="0" width="230" height="260" fill="url(#ns-field)"/>
+        <rect x="450" y="0" width="80" height="80" fill="url(#ns-trees)"/>
+        <rect x="240" y="0" width="210" height="260" fill="#E8E4D5"/>
+        <rect x="0" y="0" width="240" height="260" fill="#DDD9CC"/>
+        <rect x="0" y="260" width="680" height="30" fill="#C8C5BB"/>
+        <line x1="0" y1="275" x2="680" y2="275" stroke="#FFEBA0" stroke-width="0.6" stroke-dasharray="8 6"/>
+        <rect x="0" y="290" width="680" height="270" fill="#E5E1D2"/>
+        <rect x="590" y="290" width="90" height="270" fill="#CCDCB0"/>
+
+        <g fill="#B4B2A9" stroke="#888780" stroke-width="0.5">
+          <rect x="10" y="10" width="36" height="50"/>
+          <rect x="52" y="10" width="28" height="34"/>
+          <rect x="86" y="10" width="44" height="62"/>
+          <rect x="136" y="10" width="32" height="36"/>
+          <rect x="174" y="10" width="58" height="50"/>
+          <rect x="10" y="66" width="56" height="40"/>
+          <rect x="100" y="78" width="34" height="40"/>
+          <rect x="140" y="52" width="46" height="34"/>
+          <rect x="192" y="66" width="44" height="44"/>
+          <rect x="10" y="112" width="40" height="60"/>
+          <rect x="56" y="106" width="60" height="40"/>
+          <rect x="122" y="124" width="38" height="52"/>
+          <rect x="166" y="116" width="30" height="46"/>
+          <rect x="200" y="116" width="36" height="60"/>
+          <rect x="10" y="178" width="50" height="36"/>
+          <rect x="66" y="152" width="44" height="48"/>
+          <rect x="116" y="182" width="36" height="36"/>
+          <rect x="158" y="168" width="50" height="42"/>
+          <rect x="214" y="184" width="22" height="34"/>
+          <rect x="10" y="220" width="30" height="36"/>
+          <rect x="46" y="206" width="42" height="50"/>
+          <rect x="94" y="226" width="30" height="30"/>
+          <rect x="130" y="224" width="56" height="32"/>
+          <rect x="192" y="224" width="44" height="32"/>
+        </g>
+
+        <rect x="62" y="48" width="22" height="56" fill="#7F7E7A" stroke="#5F5E5A" stroke-width="0.5"/>
+
+        <g stroke="#B0AEA4" stroke-width="3" fill="none">
+          <line x1="0" y1="60" x2="240" y2="60"/>
+          <line x1="0" y1="142" x2="240" y2="142"/>
+          <line x1="86" y1="0" x2="86" y2="260"/>
+          <line x1="186" y1="0" x2="186" y2="260"/>
+        </g>
+
+        <g fill="#C8C2AF" stroke="#A39C82" stroke-width="0.5">
+          <rect x="250" y="10" width="18" height="18"/><rect x="274" y="10" width="18" height="18"/>
+          <rect x="298" y="10" width="18" height="18"/><rect x="322" y="10" width="18" height="18"/>
+          <rect x="346" y="10" width="18" height="18"/><rect x="370" y="10" width="18" height="18"/>
+          <rect x="394" y="10" width="18" height="18"/><rect x="418" y="10" width="18" height="18"/>
+          <rect x="250" y="40" width="18" height="18"/><rect x="274" y="40" width="18" height="18"/>
+          <rect x="298" y="40" width="18" height="18"/><rect x="370" y="40" width="18" height="18"/>
+          <rect x="394" y="40" width="18" height="18"/><rect x="418" y="40" width="18" height="18"/>
+          <rect x="318" y="35" width="44" height="32" fill="#D0BC92" stroke="#9C8A60"/>
+          <rect x="250" y="80" width="20" height="20"/><rect x="276" y="80" width="20" height="20"/>
+          <rect x="300" y="80" width="20" height="20"/><rect x="326" y="80" width="20" height="20"/>
+          <rect x="352" y="80" width="20" height="20"/><rect x="378" y="80" width="20" height="20"/>
+          <rect x="404" y="80" width="20" height="20"/><rect x="428" y="80" width="20" height="20"/>
+          <rect x="250" y="110" width="20" height="20"/><rect x="276" y="110" width="20" height="20"/>
+          <rect x="302" y="110" width="20" height="20"/><rect x="328" y="110" width="20" height="20"/>
+          <rect x="402" y="110" width="20" height="20"/><rect x="428" y="110" width="20" height="20"/>
+          <rect x="350" y="105" width="46" height="40" fill="#B8D08A"/>
+          <rect x="250" y="150" width="20" height="20"/><rect x="276" y="150" width="20" height="20"/>
+          <rect x="302" y="150" width="20" height="20"/><rect x="328" y="150" width="20" height="20"/>
+          <rect x="354" y="150" width="20" height="20"/><rect x="380" y="150" width="20" height="20"/>
+          <rect x="406" y="150" width="20" height="20"/><rect x="432" y="150" width="20" height="20"/>
+          <rect x="250" y="180" width="22" height="22"/><rect x="278" y="180" width="22" height="22"/>
+          <rect x="304" y="180" width="22" height="22"/><rect x="330" y="180" width="22" height="22"/>
+          <rect x="356" y="180" width="22" height="22"/><rect x="382" y="180" width="22" height="22"/>
+          <rect x="408" y="180" width="22" height="22"/><rect x="434" y="180" width="22" height="22"/>
+          <rect x="250" y="218" width="22" height="22"/><rect x="278" y="218" width="22" height="22"/>
+          <rect x="304" y="218" width="22" height="22"/><rect x="330" y="218" width="22" height="22"/>
+          <rect x="356" y="218" width="22" height="22"/><rect x="382" y="218" width="22" height="22"/>
+          <rect x="408" y="218" width="22" height="22"/><rect x="434" y="218" width="22" height="22"/>
+        </g>
+
+        <g stroke="#B0AEA4" stroke-width="2" fill="none">
+          <line x1="240" y1="32" x2="450" y2="32"/><line x1="240" y1="74" x2="450" y2="74"/>
+          <line x1="240" y1="104" x2="450" y2="104"/><line x1="240" y1="144" x2="450" y2="144"/>
+          <line x1="240" y1="174" x2="450" y2="174"/><line x1="240" y1="212" x2="450" y2="212"/>
+          <line x1="240" y1="244" x2="450" y2="244"/>
+          <line x1="292" y1="0" x2="292" y2="260"/><line x1="372" y1="0" x2="372" y2="260"/>
+        </g>
+
+        <rect x="510" y="56" width="32" height="22" fill="#B07A4A" stroke="#7A4F2A"/>
+        <polygon points="510,56 526,42 542,56" fill="#7A4F2A"/>
+        <line x1="450" y1="120" x2="680" y2="120" stroke="#A8B891" stroke-width="0.8"/>
+        <line x1="560" y1="80" x2="560" y2="260" stroke="#A8B891" stroke-width="0.8"/>
+        <line x1="450" y1="190" x2="680" y2="190" stroke="#A8B891" stroke-width="0.8"/>
+        <path d="M 540 80 L 540 260" stroke="#B0AEA4" stroke-width="2.5" fill="none"/>
+
+        <rect x="0" y="265" width="680" height="2" fill="#3D3A33"/>
+        <rect x="0" y="283" width="680" height="2" fill="#3D3A33"/>
+
+        <ellipse cx="130" cy="395" rx="90" ry="68" fill="#C8B594" stroke="#9C8458" stroke-width="1.5"/>
+        <ellipse cx="130" cy="395" rx="74" ry="52" fill="#A89A78" stroke="#7A6840" stroke-width="0.8"/>
+        <ellipse cx="130" cy="395" rx="56" ry="36" fill="#7BA058" stroke="#5C7E3F" stroke-width="0.5"/>
+        <line x1="130" y1="359" x2="130" y2="431" stroke="#fff" stroke-width="0.5" opacity="0.5"/>
+
+        <rect x="250" y="320" width="180" height="150" fill="#B8C4D4" stroke="#7A8AA0" stroke-width="1.2"/>
+        <line x1="340" y1="320" x2="340" y2="470" stroke="#7A8AA0" stroke-width="0.6"/>
+        <line x1="250" y1="395" x2="430" y2="395" stroke="#7A8AA0" stroke-width="0.6"/>
+        <rect x="305" y="378" width="20" height="32" fill="#7A8AA0" opacity="0.45"/>
+
+        <rect x="460" y="320" width="120" height="150" fill="#E8D8D8" stroke="#A87878" stroke-width="1.2"/>
+        <g transform="translate(520 395)" fill="#C04848">
+          <rect x="-12" y="-3" width="24" height="6"/>
+          <rect x="-3" y="-12" width="6" height="24"/>
+        </g>
+
+        <ellipse cx="640" cy="370" rx="34" ry="40" fill="#8FB8D8" stroke="#5F8AAA" stroke-width="0.8"/>
+        <circle cx="600" cy="320" r="6" fill="#7FA45E"/>
+        <circle cx="615" cy="450" r="6" fill="#7FA45E"/>
+        <circle cx="660" cy="490" r="6" fill="#7FA45E"/>
+        <circle cx="603" cy="490" r="6" fill="#7FA45E"/>
+
+        <g fill="#C8C2AF" stroke="#A39C82" stroke-width="0.5">
+          <rect x="20" y="494" width="20" height="20"/><rect x="44" y="494" width="20" height="20"/>
+          <rect x="68" y="494" width="20" height="20"/><rect x="92" y="494" width="20" height="20"/>
+          <rect x="240" y="494" width="20" height="20"/><rect x="264" y="494" width="20" height="20"/>
+          <rect x="290" y="494" width="20" height="20"/><rect x="380" y="494" width="20" height="20"/>
+          <rect x="404" y="494" width="20" height="20"/><rect x="428" y="494" width="20" height="20"/>
+        </g>
+
+        <g font-family="var(--font-sans)" font-size="9" fill="#5F5E5A" font-weight="500">
+          <text x="120" y="248" text-anchor="middle">Downtown</text>
+          <text x="345" y="248" text-anchor="middle">Suburbs</text>
+          <text x="600" y="248" text-anchor="middle">Rural</text>
+          <text x="340" y="275" text-anchor="middle" font-size="8">Highway 101</text>
+          <text x="130" y="398" text-anchor="middle" font-size="10" fill="#fff" font-weight="500">Arena</text>
+          <text x="340" y="395" text-anchor="middle" font-size="10" fill="#3D4760">Grand mall</text>
+          <text x="520" y="440" text-anchor="middle" font-size="9" fill="#7A2828">Hospital</text>
+          <text x="640" y="375" text-anchor="middle" font-size="8" fill="#3D5F7A">Lake</text>
+          <text x="610" y="540" text-anchor="middle" font-size="9" fill="#5F5E5A">Parkview</text>
+          <text x="60" y="540" text-anchor="middle" font-size="9" fill="#5F5E5A">Riverside</text>
+          <text x="73" y="84" text-anchor="middle" font-size="7" fill="#fff">Office</text>
+        </g>
+      </g>
+
+      <g id="ns-population" style="display:none"></g>
+      <g id="ns-coverage"></g>
+      <g id="ns-quality" style="display:none"></g>
+      <g id="ns-crowd"></g>
+      <g id="ns-towers"></g>
+      <g id="ns-marker"></g>
+    </svg>
+
+    <div class="ns-overlay ns-kpi">
+      <div class="ns-h">Network KPIs</div>
+      <div class="ns-row"><span class="lab">Coverage</span><span class="val" id="ns-k-cov">—</span></div>
+      <div class="ns-row"><span class="lab">Avg DL</span><span class="val" id="ns-k-dl">—</span></div>
+      <div class="ns-row"><span class="lab">Avg ping</span><span class="val" id="ns-k-ping">—</span></div>
+      <div class="ns-row"><span class="lab">Cells</span><span class="val" id="ns-k-cells">—</span></div>
+      <div class="ns-row"><span class="lab">Avg load</span><span class="val" id="ns-k-load">—</span></div>
     </div>
 
-    <div id="appLayout" class="layout-wrapper" style="display:none;">
-        
-        <div class="main-column">
-            <div id="mainMenu" class="panel">
-                <h2 id="playerName" style="color: #3498db; margin: 0;">PLAYER</h2>
-                
-                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; margin-top: 10px;">
-                    <div style="font-size: 14px; color: #aaa;">High Score: <span id="highScoreDisplay" style="color: #f1c40f; font-weight: bold; font-size: 18px;">0</span></div>
-                    <div style="font-size: 14px; color: #aaa; margin-top: 5px;">GamePoints: <span id="gpDisplay" style="color: #2ecc71; font-weight: bold; font-size: 18px;">0</span></div>
-                </div>
-
-                <hr style="width: 100%;">
-                
-                <button id="btnPlay" class="btn-play" onclick="window.toggleGame(true)">▶ NEW GAME</button>
-                <button id="btnRestart" class="btn-danger" style="display:none;" onclick="window.restartGame()">Restart / Surrender</button>
-                
-                <hr style="width: 100%;">
-                
-                <div style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn-gacha" onclick="window.openModal('gachaTempleModal')">Gacha Temple<br><span style="font-size:12px; font-weight:normal;"><span id="pullsDisplay">0</span> Pulls</span></button>
-                    <button class="btn-shop" onclick="window.openModal('shardShopModal')">Shard Shop<br><span style="font-size:12px; font-weight:normal;"><span id="shardsDisplay">0</span> Shards</span></button>
-                </div>
-                
-                <button class="btn-vault" onclick="window.openModal('vaultModal')">Skin Vault & Loadout</button>
-                <button class="btn-achieve" onclick="window.openModal('achieveModal')">Achievements</button>
-            </div>
-
-            <div id="gameUI">
-                <div class="game-hud">
-                    <button class="pause-btn" onclick="window.toggleGame(false)">❮ Lobby & Save</button>
-                    <div class="score-box" id="currentScoreDisplay">0</div>
-                </div>
-                <canvas id="gameCanvas" width="400" height="520"></canvas>
-            </div>
-        </div>
-
-        <div id="leaderboardPanel" class="panel leaderboard-column">
-            <h2 style="color: #2ecc71; margin-bottom: 15px;">Global Top 10</h2>
-            <ol id="leaderboardList" style="text-align: left; padding-left: 20px; color: #fff; margin: 0; font-size: 15px;"></ol>
-        </div>
+    <div class="ns-overlay ns-detail" id="ns-detail">
+      <div class="ns-h" id="ns-d-loc">Location</div>
+      <div class="ns-row"><span class="lab">RSRP</span><span class="val" id="ns-d-rsrp">—</span></div>
+      <div class="ns-row"><span class="lab">SINR</span><span class="val" id="ns-d-sinr">—</span></div>
+      <div class="ns-row"><span class="lab">DL throughput</span><span class="val" id="ns-d-dl">—</span></div>
+      <div class="ns-row"><span class="lab">UL throughput</span><span class="val" id="ns-d-ul">—</span></div>
+      <div class="ns-row"><span class="lab">Ping</span><span class="val" id="ns-d-ping">—</span></div>
+      <div class="ns-divider"></div>
+      <div class="ns-row"><span class="lab">Serving</span><span class="val" id="ns-d-serve">—</span></div>
+      <div class="ns-row"><span class="lab">Cell load</span><span class="val" id="ns-d-cload">—</span></div>
+      <div class="ns-mini" id="ns-d-env">—</div>
     </div>
 
-    <div id="modalOverlay" class="modal-overlay">
-        
-        <div id="gameOverModal" class="modal-box" style="display: none;">
-            <h2 style="color: #e74c3c;">SEQUENCE TERMINATED</h2>
-            <h1 id="gameOverScoreDisplay" style="color: #f1c40f; font-size: 48px; margin: 10px 0;">0</h1>
-            <p style="color: #aaa; margin-bottom: 25px;">Final Score Saved</p>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-achieve" onclick="window.exitToMenu()">Back to Menu</button>
-                <button class="btn-play" onclick="window.restartFromGameOver()" style="padding: 15px; margin-top: 0;">Play Again</button>
-            </div>
-        </div>
+    <div class="ns-overlay ns-tip" id="ns-tip"></div>
 
-        <div id="vaultModal" class="modal-box" style="display: none;">
-            <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2 style="color: #9b59b6;">Skin Vault</h2>
-            <p style="font-size: 12px; color: #aaa;">Equip skins for your active loadout.</p>
-            <div id="vaultGrid" class="vault-grid"></div>
-        </div>
-
-        <div id="gachaTempleModal" class="modal-box" style="display: none;">
-            <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2 style="color: #f1c40f; margin-bottom: 5px;">Gacha Temple</h2>
-            
-            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px; margin-top: 15px;">
-                <div style="font-size: 14px; color: #aaa; margin-bottom: 10px;">Your GamePoints: <span id="modalGpDisplay" style="color: #2ecc71; font-size: 18px; font-weight: bold;">0</span></div>
-                <button class="btn-play" style="padding: 10px; font-size: 14px;" onclick="window.exchangeGP()">Exchange 200 GP for 1 Pull</button>
-            </div>
-
-            <hr>
-            <button class="btn-gacha" onclick="window.executeRoll('pull')">Rip Pack (Cost: 1 Pull)</button>
-            
-            <div id="gachaResultArea" style="margin-top: 20px; display: none;">
-                <div id="gachaVisual" style="width: 60px; height: 60px; margin: 0 auto; border-radius: 8px;"></div>
-                <h3 id="gachaSkinName" style="margin: 10px 0;"></h3>
-                <p id="gachaResultText" style="font-weight: bold;"></p>
-            </div>
-        </div>
-
-        <div id="shardShopModal" class="modal-box" style="display: none;">
-            <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2 style="color: #e74c3c;">Shard Shop</h2>
-            <p>Convert 100 Duplicate Shards into a guaranteed new roll.</p>
-            <button class="btn-shop" onclick="window.executeRoll('shard')">Synthesize (Cost: 100 Shards)</button>
-            <div id="shardResultArea" style="margin-top: 20px; display: none;">
-                <p id="shardResultText" style="font-weight: bold;"></p>
-            </div>
-        </div>
-
-        <div id="achieveModal" class="modal-box" style="display: none;">
-            <div class="close-btn" onclick="window.closeModal()">&times;</div>
-            <h2>Achievements & Rules</h2>
-            <p style="font-size: 14px; color: #2ecc71; font-weight: bold;">🔥 LIFETIME RULE: Break a new 200-point High Score milestone = +5 Pulls!</p>
-            
-            <ul id="achievementList" class="achieve-list" style="margin-top: 15px;"></ul>
-        </div>
+    <div class="ns-overlay ns-legend">
+      <span class="ns-key"><i style="background:#1D9E75"></i>Strong</span>
+      <span class="ns-key"><i style="background:#97C459"></i>Good</span>
+      <span class="ns-key"><i style="background:#EF9F27"></i>Fair</span>
+      <span class="ns-key"><i style="background:#E24B4A"></i>Poor</span>
     </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } 
-            from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+  <div class="ns-info">
+    Click anywhere on the map in <i>Inspect</i> mode to read RSRP, SINR, throughput, and ping at that point. Switch to a <i>Place</i> tool, then click to drop new gear. Try the <i>Concert at arena</i> scenario — 12,000 fans will crush the macros until you put a DAS inside. Indoor equipment (DAS, Wi-Fi) only works when placed <i>inside</i> a venue.
+    <div id="ns-opt-tips" style="margin-top:8px"></div>
+  </div>
+</div>
 
-        // ==========================================
-        // 1. PASTE FIREBASE CONFIG HERE
-        // ==========================================
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyByVbuwJaBaOdghTMSbxvG2WEZhbDsVvkM",
-  authDomain: "jumper-2882b.firebaseapp.com",
-  projectId: "jumper-2882b",
-  storageBucket: "jumper-2882b.firebasestorage.app",
-  messagingSenderId: "852548137714",
-  appId: "1:852548137714:web:8005960f02970829b8966b",
-  measurementId: "G-5WK2XBQTBV"
-};
+<script>
+(function(){
+  const TYPES = {
+    macro:     {power:43, range:200, cap:300, color:'#185FA5', fill:'#378ADD', label:'Macro',      icon:'M0 -10 L-3 0 L3 0 Z M-1 0 L1 0 L1 8 L-1 8 Z', requiresIndoor:false},
+    'macro-w': {power:38, range:135, cap:140, color:'#185FA5', fill:'#85B7EB', label:'Macro',      icon:'M0 -10 L-3 0 L3 0 Z M-1 0 L1 0 L1 8 L-1 8 Z', requiresIndoor:false},
+    smallcell: {power:30, range:75,  cap:160, color:'#0F6E56', fill:'#1D9E75', label:'Small cell', icon:'M-5 -5 L5 -5 L5 5 L-5 5 Z',                       requiresIndoor:false},
+    das:       {power:22, range:62,  cap:260, color:'#534AB7', fill:'#7F77DD', label:'DAS',        icon:'M0 -6 L6 0 L0 6 L-6 0 Z',                          requiresIndoor:true},
+    wifi:      {power:18, range:30,  cap:420, color:'#854F0B', fill:'#BA7517', label:'Wi-Fi',      icon:'M-5 4 A5 5 0 0 1 5 4 M-3 4 A3 3 0 0 1 3 4 M0 5 L0 5',requiresIndoor:true},
+    repeater:  {power:26, range:55,  cap:80,  color:'#993556', fill:'#D4537E', label:'Repeater',   icon:'M-5 -3 L5 -3 M-5 3 L5 3 M-3 -5 L-3 5 M3 -5 L3 5',  requiresIndoor:false},
+  };
+  const INDOOR = [
+    {name:'Arena',        shape:'ellipse', cx:130, cy:395, rx:90, ry:68, baseLoad:5},
+    {name:'Grand mall',   shape:'rect', x:250, y:320, w:180, h:150,     baseLoad:25},
+    {name:'Hospital',     shape:'rect', x:460, y:320, w:120, h:150,     baseLoad:30},
+    {name:'Office tower', shape:'rect', x:62,  y:48,  w:22,  h:56,      baseLoad:45},
+  ];
+  const POP = [
+    {x:110,y:130,r:170,i:0.85,label:'Downtown'},
+    {x:345,y:130,r:140,i:0.55,label:'Suburbs'},
+    {x:565,y:130,r:140,i:0.10,label:'Rural'},
+    {x:340,y:395,r:90, i:0.4, label:'Mall'},
+    {x:520,y:395,r:60, i:0.35,label:'Hospital'},
+    {x:130,y:395,r:80, i:0.0, label:'Arena'},
+    {y:275,hwy:true,i:0.18,label:'Highway'},
+  ];
+  const state = {
+    mode:'inspect', placeType:null, layer:'coverage', scenario:'normal',
+    towers:[
+      {id:'M1',x:150,y:90, type:'macro',    name:'Cell-Urban-1',placed:false},
+      {id:'M2',x:380,y:100,type:'macro',    name:'Cell-Sub-1',  placed:false},
+      {id:'M3',x:580,y:80, type:'macro-w',  name:'Cell-Rural-1',placed:false},
+      {id:'S1',x:210,y:220,type:'smallcell',name:'SmCell-DT-1', placed:false},
+    ],
+    next:100, _kpis:{}
+  };
 
+  const svg = document.getElementById('ns-svg');
+  const gTowers = document.getElementById('ns-towers');
+  const gCov = document.getElementById('ns-coverage');
+  const gQual = document.getElementById('ns-quality');
+  const gPop = document.getElementById('ns-population');
+  const gCrowd = document.getElementById('ns-crowd');
+  const gMark = document.getElementById('ns-marker');
+  const detail = document.getElementById('ns-detail');
+  const tipEl = document.getElementById('ns-tip');
 
-        const app = initializeApp(firebaseConfig);
-        const firestoreDb = getFirestore(app);
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  function indoorOf(p){
+    for(const z of INDOOR){
+      if(z.shape==='rect' && p.x>=z.x && p.x<=z.x+z.w && p.y>=z.y && p.y<=z.y+z.h) return z;
+      if(z.shape==='ellipse'){const dx=(p.x-z.cx)/z.rx,dy=(p.y-z.cy)/z.ry;if(dx*dx+dy*dy<=1) return z;}
+    }
+    return null;
+  }
+  function scenarioLoads(){
+    const m={}; let macroMult=0.5;
+    INDOOR.forEach(z=>m[z.name]=z.baseLoad);
+    if(state.scenario==='concert'){ m['Arena']=95; macroMult=0.75; }
+    else if(state.scenario==='rush'){ Object.keys(m).forEach(k=>m[k]*=0.7); macroMult=0.95; }
+    else if(state.scenario==='weekend'){ m['Grand mall']=85; macroMult=0.65; }
+    return {z:m, macroMult};
+  }
+  function rsrpAt(p,t){
+    const tt=TYPES[t.type]; const d=dist(p,t);
+    if(d>tt.range*1.7) return -140;
+    let rsrp = -65 - (d/tt.range)*55;
+    const pI=indoorOf(p), tI=indoorOf({x:t.x,y:t.y});
+    if(pI){
+      if(tt.requiresIndoor && tI===pI) rsrp += 12;
+      else if(tt.requiresIndoor) return -140;
+      else rsrp -= 22;
+    } else if(tt.requiresIndoor) return -140;
+    return rsrp;
+  }
+  function bestServerAt(p){
+    let best=null,b=-140,s=-140;
+    for(const t of state.towers){const r=rsrpAt(p,t); if(r>b){s=b;b=r;best=t;} else if(r>s) s=r;}
+    return {tower:best,rsrp:b,sec:s};
+  }
+  function towerLoad(t){
+    const sc=scenarioLoads(); const tt=TYPES[t.type]; const tI=indoorOf({x:t.x,y:t.y});
+    if(tt.requiresIndoor) return tI ? (sc.z[tI.name]||20) : 0;
+    let load = 30*sc.macroMult;
+    for(const z of INDOOR){
+      const zx=z.shape==='rect'?z.x+z.w/2:z.cx, zy=z.shape==='rect'?z.y+z.h/2:z.cy;
+      const d=Math.hypot(t.x-zx,t.y-zy);
+      if(d<tt.range){
+        const hasIndoor = state.towers.some(t2=>{const tt2=TYPES[t2.type];if(!tt2.requiresIndoor)return false;const zz=indoorOf({x:t2.x,y:t2.y});return zz && zz.name===z.name;});
+        if(!hasIndoor) load += (sc.z[z.name]||0)*0.6*(1-d/tt.range);
+      }
+    }
+    return Math.min(100,Math.max(0,load));
+  }
+  function metricsAt(p){
+    const {tower,rsrp,sec}=bestServerAt(p);
+    if(!tower || rsrp<-120) return {rsrp:rsrp,sinr:0,dl:0,ul:0,ping:9999,tower:null};
+    const sinr=Math.max(-5,Math.min(30, rsrp-sec-5));
+    const load=towerLoad(tower); const tt=TYPES[tower.type];
+    const rf=Math.max(0,Math.min(1,(rsrp+115)/50));
+    const sf=Math.max(0.1,Math.min(1,(sinr+5)/25));
+    const lf=1-(load/100)*0.7;
+    const dl=tt.cap*0.85*rf*sf*lf;
+    const ul=dl*0.3;
+    const ping=Math.round(12+(1-rf)*40+load*0.5);
+    return {rsrp,sinr,dl,ul,ping,tower,load};
+  }
+  function svgEl(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs) e.setAttribute(k,attrs[k]);return e;}
 
-        // ==========================================
-        // 2. DATABASE & META LOGIC
-        // ==========================================
-        const DB = {
-            getUser: async (username) => {
-                const userRef = doc(firestoreDb, "users", username);
-                const userSnap = await getDoc(userRef);
-                
-                if (userSnap.exists()) {
-                    let data = userSnap.data();
-                    if (!data.activeGame) data.activeGame = { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" };
-                    if (data.gamePoints === undefined) data.gamePoints = 0; 
-                    return data;
-                }
-                
-                const newUser = { 
-                    username, highScore: 0, pulls: 1, shards: 0, gamePoints: 0, vault: ["#e74c3c"], activeSkin: "#e74c3c", achievements: {},
-                    activeGame: { inProgress: false, score: 0, boardStr: "[]", trayStr: "[]" }
-                };
-                await setDoc(userRef, newUser); return newUser;
-            },
-            saveUser: async (user) => { await setDoc(doc(firestoreDb, "users", user.username), user); },
-            getLeaderboard: async () => {
-                const q = query(collection(firestoreDb, "users"), orderBy("highScore", "desc"), limit(10));
-                const snap = await getDocs(q); let board = [];
-                snap.forEach(doc => board.push({ username: doc.data().username, score: doc.data().highScore }));
-                return board;
-            }
-        };
+  function renderTowers(){
+    gTowers.innerHTML='';
+    state.towers.forEach(t=>{
+      const tt=TYPES[t.type];
+      const g=svgEl('g',{transform:`translate(${t.x} ${t.y})`,style:'cursor:pointer'});
+      g.dataset.tid=t.id;
+      const pulse=svgEl('circle',{r:14,fill:tt.fill});
+      pulse.style.animation='nspulse 2.6s ease-in-out infinite';
+      g.appendChild(pulse);
+      g.appendChild(svgEl('circle',{r:8,fill:'#fff',stroke:tt.color,'stroke-width':1.5}));
+      g.appendChild(svgEl('path',{d:tt.icon,fill:tt.color,stroke:tt.color,'stroke-width':1,transform:'scale(0.55)'}));
+      if(t.placed){
+        g.appendChild(svgEl('circle',{cx:8,cy:-8,r:4,fill:'#fff',stroke:'#A32D2D','stroke-width':0.8}));
+        g.appendChild(svgEl('path',{d:'M 6 -10 L 10 -6 M 10 -10 L 6 -6',stroke:'#A32D2D','stroke-width':0.9}));
+      }
+      gTowers.appendChild(g);
+    });
+  }
+  function renderCoverage(){
+    gCov.innerHTML='';
+    if(state.layer!=='coverage') return;
+    state.towers.forEach(t=>{
+      const tt=TYPES[t.type]; const tI=indoorOf({x:t.x,y:t.y});
+      if(tt.requiresIndoor && tI){
+        gCov.appendChild(svgEl('circle',{cx:t.x,cy:t.y,r:tt.range,fill:tt.fill,opacity:0.10}));
+        gCov.appendChild(svgEl('circle',{cx:t.x,cy:t.y,r:tt.range*0.55,fill:tt.fill,opacity:0.18}));
+      } else {
+        gCov.appendChild(svgEl('circle',{cx:t.x,cy:t.y,r:tt.range,fill:tt.fill,opacity:0.06}));
+        gCov.appendChild(svgEl('circle',{cx:t.x,cy:t.y,r:tt.range*0.65,fill:tt.fill,opacity:0.10}));
+        gCov.appendChild(svgEl('circle',{cx:t.x,cy:t.y,r:tt.range*0.32,fill:tt.fill,opacity:0.16}));
+      }
+    });
+  }
+  function renderQuality(){
+    gQual.innerHTML='';
+    if(state.layer!=='quality') return;
+    const step=22;
+    for(let y=step/2;y<560;y+=step){
+      for(let x=step/2;x<680;x+=step){
+        const m=metricsAt({x,y});
+        if(m.rsrp<-125) continue;
+        let c;
+        if(m.rsrp<-110) c='#E24B4A';
+        else if(m.rsrp<-95) c='#EF9F27';
+        else if(m.rsrp<-82) c='#97C459';
+        else c='#1D9E75';
+        gQual.appendChild(svgEl('rect',{x:x-step/2,y:y-step/2,width:step,height:step,fill:c,opacity:0.34}));
+      }
+    }
+  }
+  function renderPopulation(){
+    gPop.innerHTML='';
+    if(state.layer!=='population') return;
+    POP.forEach(h=>{
+      if(h.hwy){
+        gPop.appendChild(svgEl('rect',{x:0,y:265,width:680,height:30,fill:'#FAC775',opacity: state.scenario==='rush'?0.6:0.22}));
+        return;
+      }
+      let i=h.i;
+      if(state.scenario==='concert' && h.label==='Arena') i=0.95;
+      if(state.scenario==='weekend' && h.label==='Mall') i=0.85;
+      if(i<=0) return;
+      gPop.appendChild(svgEl('circle',{cx:h.x,cy:h.y,r:h.r,fill:'#FAC775',opacity:i*0.18}));
+      gPop.appendChild(svgEl('circle',{cx:h.x,cy:h.y,r:h.r*0.6,fill:'#EF9F27',opacity:i*0.20}));
+      gPop.appendChild(svgEl('circle',{cx:h.x,cy:h.y,r:h.r*0.3,fill:'#BA7517',opacity:i*0.22}));
+    });
+  }
+  function renderCrowd(){
+    gCrowd.innerHTML='';
+    if(state.scenario==='concert'){
+      const cx=130,cy=395,rx=70,ry=50;
+      for(let i=0;i<260;i++){
+        const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random());
+        gCrowd.appendChild(svgEl('circle',{cx:cx+Math.cos(a)*rx*r,cy:cy+Math.sin(a)*ry*r,r:0.9,fill:'#3D3A33',opacity:0.65}));
+      }
+    } else if(state.scenario==='weekend'){
+      for(let i=0;i<100;i++){
+        gCrowd.appendChild(svgEl('circle',{cx:254+Math.random()*172,cy:324+Math.random()*142,r:0.9,fill:'#3D3A33',opacity:0.55}));
+      }
+    } else if(state.scenario==='rush'){
+      for(let i=0;i<90;i++){
+        gCrowd.appendChild(svgEl('rect',{x:Math.random()*680,y:268+Math.random()*22,width:3,height:1.6,fill:'#3D3A33',opacity:0.7}));
+      }
+    }
+  }
+  function popWeight(x,y){
+    let w=0.1;
+    POP.forEach(h=>{
+      if(h.hwy){ if(y>=260 && y<=290) w += state.scenario==='rush'?0.6:0.2; return; }
+      const d=Math.hypot(x-h.x,y-h.y);
+      if(d<h.r){
+        let i=h.i;
+        if(state.scenario==='concert' && h.label==='Arena') i=0.95;
+        if(state.scenario==='weekend' && h.label==='Mall') i=0.85;
+        w += i*(1-d/h.r);
+      }
+    });
+    return w;
+  }
+  function updateKPIs(){
+    let sw=0,td=0,tp=0,cv=0;
+    for(let i=0;i<900;i++){
+      const x=Math.random()*680, y=Math.random()*560;
+      const w=popWeight(x,y); if(w<0.05) continue;
+      const m=metricsAt({x,y});
+      sw+=w; td+=m.dl*w; tp+=Math.min(500,m.ping)*w;
+      if(m.rsrp>-110) cv+=w;
+    }
+    const cov=sw>0?(cv/sw)*100:0;
+    const avgDL=sw>0?td/sw:0;
+    const avgPing=sw>0?tp/sw:0;
+    let tl=0; state.towers.forEach(t=>tl+=towerLoad(t));
+    const avgLoad=state.towers.length?tl/state.towers.length:0;
+    document.getElementById('ns-k-cov').textContent=Math.round(cov)+'%';
+    document.getElementById('ns-k-dl').textContent=Math.round(avgDL)+' Mbps';
+    document.getElementById('ns-k-ping').textContent=Math.round(avgPing)+' ms';
+    document.getElementById('ns-k-cells').textContent=state.towers.length;
+    document.getElementById('ns-k-load').textContent=Math.round(avgLoad)+'%';
+    const setC=(id,a,b)=>{const e=document.getElementById(id);e.classList.remove('ns-strong','ns-mid','ns-weak');e.classList.add(a?'ns-strong':b?'ns-mid':'ns-weak');};
+    setC('ns-k-cov', cov>85, cov>65);
+    setC('ns-k-dl', avgDL>60, avgDL>25);
+    setC('ns-k-ping', avgPing<35, avgPing<80);
+    setC('ns-k-load', avgLoad<50, avgLoad<75);
+    state._kpis={cov,avgDL,avgPing,avgLoad};
+  }
+  function updateTips(){
+    const k=state._kpis||{}; const tips=[];
+    const hasInZone=(name)=> state.towers.some(t=>{const tt=TYPES[t.type];const zz=indoorOf({x:t.x,y:t.y});return tt.requiresIndoor && zz && zz.name===name;});
+    if(state.scenario==='concert'){
+      if(!hasInZone('Arena')) tips.push('Arena has no dedicated indoor coverage and 12,000 fans are slamming the nearest macros. Drop a DAS inside the arena to offload them.');
+      else { const m=metricsAt({x:130,y:395}); if(m.dl<20) tips.push('Arena has indoor gear but throughput is still low — try a second DAS or add a small cell just outside.'); else tips.push('Arena coverage is holding under concert load — well done.'); }
+    }
+    if(state.scenario==='weekend' && !hasInZone('Grand mall')) tips.push('Mall is packed and indoor — outdoor macros lose ~22 dB through walls. Add a DAS or Wi-Fi APs inside.');
+    const hm=metricsAt({x:520,y:395}); if(hm.rsrp<-105) tips.push('Hospital indoor signal is weak ('+Math.round(hm.rsrp)+' dBm). A DAS would help critical comms reliability.');
+    const rm=metricsAt({x:590,y:150}); if(rm.rsrp<-105) tips.push('Rural coverage is thin — another macro or a repeater would close the gap.');
+    if(k.avgLoad>75) tips.push('Average cell load is '+Math.round(k.avgLoad)+'%. Small cells offload macros nicely.');
+    if(k.cov<70) tips.push('Coverage is at '+Math.round(k.cov)+'% — find the gaps with the Quality layer.');
+    if(tips.length===0) tips.push('Network looks balanced for this scenario. Try a different scenario or remove a cell to feel the impact.');
+    document.getElementById('ns-opt-tips').innerHTML='Suggestions:<ul class="ns-tips-list">'+tips.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
+  }
+  function rerender(){
+    renderCoverage(); renderQuality(); renderPopulation(); renderCrowd(); renderTowers();
+    updateKPIs(); updateTips();
+    gCov.style.display = state.layer==='coverage'?'':'none';
+    gQual.style.display = state.layer==='quality'?'':'none';
+    gPop.style.display = state.layer==='population'?'':'none';
+  }
+  function getPt(evt){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+  function guessArea(p){
+    if(p.x<240 && p.y<260) return 'Downtown';
+    if(p.x<450 && p.y<260) return 'Suburbs';
+    if(p.x>=450 && p.y<260) return 'Rural';
+    if(p.y>290 && p.x>590) return 'Parkview';
+    if(p.y>=260 && p.y<=290) return 'Highway 101';
+    return 'Outdoors';
+  }
+  function inspectAt(p){
+    const m=metricsAt(p); const inZ=indoorOf(p);
+    gMark.innerHTML='';
+    gMark.appendChild(svgEl('circle',{cx:p.x,cy:p.y,r:6,fill:'none',stroke:'#000','stroke-width':1.5}));
+    gMark.appendChild(svgEl('circle',{cx:p.x,cy:p.y,r:11,fill:'none',stroke:'#000','stroke-width':0.5,opacity:0.5}));
+    if(m.tower) gMark.appendChild(svgEl('line',{x1:p.x,y1:p.y,x2:m.tower.x,y2:m.tower.y,stroke:'#185FA5','stroke-width':0.9,'stroke-dasharray':'3 3',opacity:0.75}));
+    detail.classList.add('show');
+    document.getElementById('ns-d-loc').textContent = inZ?('Inside '+inZ.name):guessArea(p);
+    const re=document.getElementById('ns-d-rsrp'); re.textContent=Math.round(m.rsrp)+' dBm';
+    re.className='val '+(m.rsrp>-95?'ns-strong':m.rsrp>-110?'ns-mid':'ns-weak');
+    document.getElementById('ns-d-sinr').textContent=m.sinr.toFixed(1)+' dB';
+    const de=document.getElementById('ns-d-dl'); de.textContent=m.dl.toFixed(1)+' Mbps';
+    de.className='val '+(m.dl>50?'ns-strong':m.dl>15?'ns-mid':'ns-weak');
+    document.getElementById('ns-d-ul').textContent=m.ul.toFixed(1)+' Mbps';
+    const pe=document.getElementById('ns-d-ping'); pe.textContent=m.ping>500?'—':(m.ping+' ms');
+    pe.className='val '+(m.ping<35?'ns-strong':m.ping<80?'ns-mid':'ns-weak');
+    document.getElementById('ns-d-serve').textContent=m.tower?m.tower.name:'— no service —';
+    document.getElementById('ns-d-cload').textContent=m.tower?(Math.round(towerLoad(m.tower))+'%'):'—';
+    document.getElementById('ns-d-env').textContent=inZ?'Indoor — outdoor signals lose 22 dB through walls.':'Outdoor location';
+  }
+  let tipT;
+  function showTip(html){tipEl.innerHTML=html;tipEl.classList.add('show');clearTimeout(tipT);tipT=setTimeout(()=>tipEl.classList.remove('show'),5000);}
 
-        const SKIN_POOL = [
-            { name: "Crimson Core", color: "#e74c3c", tier: "Common", weight: 40 },
-            { name: "Cobalt Drive", color: "#3498db", tier: "Common", weight: 40 },
-            { name: "Neon Matrix", color: "#fd79a8", tier: "Rare", weight: 30 },
-            { name: "Toxic Cyan", color: "#00cec9", tier: "Rare", weight: 30 },
-            { name: "Amethyst", color: "#9b59b6", tier: "Epic", weight: 10 },
-            { name: "Galaxy Gold", color: "legendary_gold", tier: "Legendary", weight: 2 },
-            { name: "Quantum Void", color: "legendary_void", tier: "Legendary", weight: 1 }
-        ];
+  svg.addEventListener('click',(evt)=>{
+    const p=getPt(evt);
+    if(state.mode==='remove'){
+      let best=null,bd=99;
+      state.towers.forEach(t=>{const d=dist(p,t); if(d<14 && t.placed && d<bd){bd=d;best=t;}});
+      if(best){ state.towers=state.towers.filter(t=>t!==best); showTip('Removed '+best.name); rerender(); }
+      else showTip('Click on equipment you placed (the ones with the red ✕) to remove it. Pre-existing towers are locked.');
+      return;
+    }
+    if(state.placeType){
+      const tt=TYPES[state.placeType]; const inZ=indoorOf(p);
+      if(tt.requiresIndoor && !inZ){ showTip(tt.label+' only works indoors. Click inside Arena, Grand mall, Hospital, or Office tower.'); return; }
+      const id='U'+(state.next++);
+      const suf = inZ?' ('+inZ.name+')':'';
+      state.towers.push({id,x:p.x,y:p.y,type:state.placeType,name:tt.label+'-'+id+suf,placed:true});
+      showTip('Placed '+tt.label+'. Watch the KPIs and suggestions update.');
+      rerender(); return;
+    }
+    inspectAt(p);
+  });
 
-        window.currentUser = null;
-        window.gameLoopId = null;
-
-        window.login = async function() {
-            const input = document.getElementById('usernameInput');
-            const username = input.value.trim();
-            if (!username) return;
-            
-            input.value = "Connecting to Cloud..."; input.disabled = true;
-            try {
-                window.currentUser = await DB.getUser(username);
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('appLayout').style.display = 'flex';
-                document.getElementById('mainMenu').style.display = 'flex';
-                window.refreshMenuUI();
-            } catch (error) { alert("Connection failed.\n" + error.message); input.value = username; input.disabled = false; }
-        };
-
-        window.refreshMenuUI = async function() {
-            const user = window.currentUser;
-            document.getElementById('playerName').innerText = user.username.toUpperCase();
-            document.getElementById('highScoreDisplay').innerText = user.highScore;
-            
-            document.getElementById('gpDisplay').innerText = user.gamePoints || 0;
-            document.getElementById('modalGpDisplay').innerText = user.gamePoints || 0;
-            
-            document.getElementById('pullsDisplay').innerText = user.pulls;
-            document.getElementById('shardsDisplay').innerText = user.shards;
-            
-            const playBtn = document.getElementById('btnPlay');
-            const restartBtn = document.getElementById('btnRestart');
-            if (user.activeGame && user.activeGame.inProgress) {
-                playBtn.innerText = "▶ RESUME MATCH (Score: " + user.activeGame.score + ")";
-                playBtn.style.background = "linear-gradient(135deg, #f39c12, #d35400)";
-                restartBtn.style.display = "block";
-            } else {
-                playBtn.innerText = "▶ DEPLOY NEW GAME";
-                playBtn.style.background = "linear-gradient(135deg, #2ecc71, #27ae60)";
-                restartBtn.style.display = "none";
-            }
-
-            const vault = document.getElementById('vaultGrid');
-            vault.innerHTML = '';
-            SKIN_POOL.forEach(skinObj => {
-                let div = document.createElement('div');
-                if (user.vault.includes(skinObj.color)) {
-                    div.className = 'skin-swatch' + (user.activeSkin === skinObj.color ? ' active' : '');
-                    if(skinObj.color.startsWith('legendary')) div.style.background = skinObj.color === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)';
-                    else div.style.backgroundColor = skinObj.color;
-                    div.onclick = async () => { user.activeSkin = skinObj.color; await DB.saveUser(user); window.refreshMenuUI(); };
-                } else {
-                    div.className = 'skin-swatch skin-locked'; div.innerText = '?';
-                }
-                vault.appendChild(div);
-            });
-
-            // Dynamically generate Lifetime Milestones (every 200 points)
-            const achList = document.getElementById('achievementList');
-            achList.innerHTML = '';
-            
-            let highestDisplay = Math.floor((user.highScore || 0) / 200) * 200 + 600;
-            if (highestDisplay < 800) highestDisplay = 800; 
-
-            for(let i = 200; i <= highestDisplay; i+=200) {
-                let li = document.createElement('li');
-                let done = user.achievements['score_' + i];
-                li.className = done ? 'achieve-done' : '';
-                li.innerText = done ? `✔ Lifetime Score: ${i} (+5 Pulls Claimed)` : `🔒 Reach High Score: ${i}`;
-                achList.appendChild(li);
-            }
-
-            const lb = document.getElementById('leaderboardList');
-            const liveLeaderboard = await DB.getLeaderboard();
-            lb.innerHTML = '';
-            liveLeaderboard.forEach(p => {
-                let li = document.createElement('li');
-                li.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.1);">
-                                    <span style="font-weight:600;">${p.username}</span> 
-                                    <span style="color:#f1c40f; font-weight:800;">${p.score}</span>
-                                </div>`;
-                lb.appendChild(li);
-            });
-        };
-
-        window.openModal = function(modalId) {
-            document.querySelectorAll('.modal-box').forEach(b => b.style.display = 'none');
-            document.getElementById('modalOverlay').style.display = 'flex';
-            document.getElementById(modalId).style.display = 'block';
-            document.getElementById('gachaResultArea').style.display = 'none'; 
-            document.getElementById('shardResultArea').style.display = 'none';
-        }
-        window.closeModal = function() { document.getElementById('modalOverlay').style.display = 'none'; }
-
-        window.showToast = function(message) {
-            let toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.style.top = '20px';
-            setTimeout(() => { toast.style.top = '-100px'; }, 3500);
-        }
-
-        window.exchangeGP = async function() {
-            let user = window.currentUser;
-            if ((user.gamePoints || 0) < 200) return alert("Not enough GamePoints! Keep playing matches to earn more.");
-            
-            user.gamePoints -= 200;
-            user.pulls += 1;
-            
-            await DB.saveUser(user); 
-            window.refreshMenuUI();
-        }
-
-        window.executeRoll = async function(type) {
-            let user = window.currentUser;
-            if (type === 'pull') {
-                if (user.pulls < 1) return alert("No Pull Tickets! Buy more with GamePoints.");
-                user.pulls -= 1;
-            } else if (type === 'shard') {
-                if (user.shards < 100) return alert("Need 100 Shards!");
-                user.shards -= 100;
-            }
-
-            let totalWeight = SKIN_POOL.reduce((sum, item) => sum + item.weight, 0);
-            let random = Math.random() * totalWeight; let pulledSkin = SKIN_POOL[0];
-            for (let item of SKIN_POOL) { if (random < item.weight) { pulledSkin = item; break; } random -= item.weight; }
-
-            let resultTextId = type === 'pull' ? 'gachaResultText' : 'shardResultText';
-            let resText = document.getElementById(resultTextId);
-            
-            if (user.vault.includes(pulledSkin.color)) {
-                let shardGain = pulledSkin.tier === "Legendary" ? 50 : pulledSkin.tier === "Epic" ? 25 : 10;
-                user.shards += shardGain;
-                resText.innerHTML = `Duplicate <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>. Converted to +${shardGain} Shards.`;
-                resText.style.color = "#bdc3c7";
-            } else {
-                user.vault.push(pulledSkin.color);
-                resText.innerHTML = `NEW UNLOCK! You acquired <span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>.`;
-                resText.style.color = "#2ecc71";
-            }
-            
-            if (type === 'pull') {
-                document.getElementById('gachaResultArea').style.display = 'block';
-                let vis = document.getElementById('gachaVisual');
-                vis.style.background = pulledSkin.color.startsWith('legendary') ? (pulledSkin.color === 'legendary_gold' ? 'linear-gradient(45deg, #f1c40f, #e67e22)' : 'linear-gradient(45deg, #8e44ad, #2c3e50)') : pulledSkin.color;
-                document.getElementById('gachaSkinName').innerHTML = `<span class="tier-${pulledSkin.tier}">${pulledSkin.name}</span>`;
-            } else {
-                document.getElementById('shardResultArea').style.display = 'block';
-            }
-            
-            await DB.saveUser(user); window.refreshMenuUI();
-        }
-
-        // ==========================================
-        // 3. CORE GAME ENGINE
-        // ==========================================
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const ROWS = 10; const COLS = 10; const SIZE = 40; const TRAY_Y = 420;
-
-        let score = 0; let board = []; let trayShapes = []; 
-        let legendPhase = 0; let isDragging = false; let draggedIndex = -1; let mouseX = 0, mouseY = 0; let dragOffsetX = 0, dragOffsetY = 0;
-
-        const SHAPE_LIBRARY = [
-            [[1]], [[1,1]], [[1],[1]], [[1,1,1]], [[1],[1],[1]], [[1,1,1,1]], [[1],[1],[1],[1]], [[1,1,1,1,1]], [[1],[1],[1],[1],[1]],
-            [[1,1],[1,1]], [[1,1,1],[1,1,1],[1,1,1]], [[1,1,1],[1,1,1]], [[1,1],[1,1],[1,1]], 
-            [[1,1],[1,0]], [[1,1],[0,1]], [[1,0],[1,1]], [[0,1],[1,1]], 
-            [[1,1,1],[1,0,0],[1,0,0]], [[1,1,1],[0,0,1],[0,0,1]], [[0,0,1],[0,0,1],[1,1,1]], [[1,0,0],[1,0,0],[1,1,1]],
-            [[1,1,1],[0,1,0]], [[0,1,0],[1,1,1]], [[1,0],[1,1],[1,0]], [[0,1],[1,1],[0,1]], 
-            [[0,1,0],[1,1,1],[0,1,0]], [[1,1,0],[0,1,1]], [[0,1,1],[1,1,0]]
-        ];
-
-        window.toggleGame = function(starting) {
-            if (starting) {
-                document.getElementById('mainMenu').style.display = 'none';
-                document.getElementById('gameUI').style.display = 'flex';
-                
-                if (window.currentUser.activeGame && window.currentUser.activeGame.inProgress) {
-                    board = JSON.parse(window.currentUser.activeGame.boardStr);
-                    score = window.currentUser.activeGame.score;
-                    trayShapes = JSON.parse(window.currentUser.activeGame.trayStr);
-                } else {
-                    board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-                    score = 0;
-                    refillTray();
-                    
-                    window.currentUser.activeGame = {
-                        inProgress: true,
-                        score: 0,
-                        boardStr: JSON.stringify(board),
-                        trayStr: JSON.stringify(trayShapes)
-                    };
-                    syncCloudSave();
-                }
-                
-                document.getElementById('currentScoreDisplay').innerText = score;
-                
-                if(!window.gameLoopId) {
-                    canvas.addEventListener('mousedown', pointerDown); canvas.addEventListener('mousemove', pointerMove); window.addEventListener('mouseup', pointerUp);
-                    canvas.addEventListener('touchstart', pointerDown, {passive: false}); canvas.addEventListener('touchmove', pointerMove, {passive: false}); window.addEventListener('touchend', pointerUp);
-                }
-                window.gameLoopId = setInterval(draw, 30); 
-
-            } else {
-                clearInterval(window.gameLoopId);
-                window.gameLoopId = null;
-                document.getElementById('gameUI').style.display = 'none';
-                document.getElementById('mainMenu').style.display = 'flex';
-                syncCloudSave(); 
-                window.refreshMenuUI();
-            }
-        }
-
-        window.restartGame = function() {
-            if(confirm("Are you sure? Current progress will be lost.")) {
-                window.currentUser.activeGame.inProgress = false;
-                syncCloudSave();
-                window.refreshMenuUI();
-            }
-        }
-
-        window.exitToMenu = function() {
-            window.closeModal();
-            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-            score = 0;
-            refillTray();
-            window.toggleGame(false); 
-        };
-
-        window.restartFromGameOver = function() {
-            window.closeModal();
-            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-            score = 0;
-            refillTray();
-            
-            window.currentUser.activeGame = {
-                inProgress: true,
-                score: 0,
-                boardStr: JSON.stringify(board),
-                trayStr: JSON.stringify(trayShapes)
-            };
-            syncCloudSave();
-            document.getElementById('currentScoreDisplay').innerText = score;
-        };
-
-        function syncCloudSave() {
-            let user = window.currentUser;
-            user.activeGame.score = score;
-            user.activeGame.boardStr = JSON.stringify(board);
-            user.activeGame.trayStr = JSON.stringify(trayShapes);
-            DB.saveUser(user);
-        }
-
-        function refillTray() {
-            trayShapes = [];
-            let availableShapes = [...SHAPE_LIBRARY];
-            for (let i = 0; i < 3; i++) { 
-                let randomIndex = Math.floor(Math.random() * availableShapes.length);
-                trayShapes.push({ matrix: availableShapes[randomIndex], used: false });
-                availableShapes.splice(randomIndex, 1);
-            }
-        }
-
-        // --- LIFETIME MILESTONE LOGIC ---
-        async function addScore(points) {
-            score += points; 
-            document.getElementById('currentScoreDisplay').innerText = score;
-            
-            let user = window.currentUser; 
-            user.gamePoints = (user.gamePoints || 0) + points;
-
-            // Check ALL milestones up to the current score
-            let maxMilestone = Math.floor(score / 200) * 200;
-            let pullsGained = 0;
-            
-            for (let m = 200; m <= maxMilestone; m += 200) {
-                if (!user.achievements['score_' + m]) {
-                    user.achievements['score_' + m] = true;
-                    user.pulls += 5;
-                    pullsGained += 5;
-                }
-            }
-
-            if (pullsGained > 0) {
-                window.showToast(`Lifetime Record: ${maxMilestone} pts! +${pullsGained} Pulls!`);
-                window.refreshMenuUI();
-            }
-
-            if (score > user.highScore) user.highScore = score;
-            syncCloudSave(); 
-            
-            if(score === user.highScore) window.refreshMenuUI();
-        }
-
-        function fillRoundRect(x, y, w, h, radius, fillStyle) { ctx.fillStyle = fillStyle; ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fill(); }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); legendPhase += 0.05;
-
-            ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 1;
-            for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r * SIZE); ctx.lineTo(COLS * SIZE, r * SIZE); ctx.stroke(); }
-            for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(c * SIZE, 0); ctx.lineTo(c * SIZE, ROWS * SIZE); ctx.stroke(); }
-
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) { if (board[r][c] !== 0) drawBlock(c * SIZE, r * SIZE, board[r][c], SIZE); }
-            }
-
-            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(0, 400, 400, 120);
-
-            let offsetX = 25;
-            for (let i = 0; i < 3; i++) {
-                if (!trayShapes[i].used) {
-                    if (isDragging && draggedIndex === i) drawShape(trayShapes[i].matrix, mouseX - dragOffsetX, mouseY - dragOffsetY, window.currentUser.activeSkin, SIZE);
-                    else drawShape(trayShapes[i].matrix, offsetX, TRAY_Y + 10, window.currentUser.activeSkin, 22);
-                }
-                offsetX += 125;
-            }
-        }
-
-        function getBlockColor(skin) {
-            if (skin === 'legendary_gold') return `hsl(${(legendPhase * 40) % 360}, 90%, 55%)`;
-            if (skin === 'legendary_void') return Math.sin(legendPhase * 2) > 0 ? "#8e44ad" : "#2c3e50";
-            return skin;
-        }
-
-        function drawBlock(x, y, skin, blockSize) {
-            let padding = blockSize === SIZE ? 2 : 1;
-            fillRoundRect(x + padding, y + padding, blockSize - padding*2, blockSize - padding*2, 4, getBlockColor(skin));
-            fillRoundRect(x + padding, y + padding, blockSize - padding*2, blockSize * 0.15, 3, "rgba(255,255,255,0.2)");
-        }
-
-        function drawShape(matrix, x, y, skin, renderSize) {
-            let displayColor = skin.startsWith('legendary') ? (isDragging ? getBlockColor(skin) : '#f1c40f') : skin;
-            for (let r = 0; r < matrix.length; r++) {
-                for (let c = 0; c < matrix[r].length; c++) {
-                    if (matrix[r][c]) drawBlock(x + c * renderSize, y + r * renderSize, displayColor, renderSize);
-                }
-            }
-        }
-
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            let clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - rect.left) * (canvas.width / rect.width), y: (clientY - rect.top) * (canvas.height / rect.height) };
-        }
-
-        function pointerDown(e) {
-            if(e.type === 'touchstart') e.preventDefault();
-            let pos = getPointerPos(e); mouseX = pos.x; mouseY = pos.y;
-            if (mouseY > 400) {
-                let offsetX = 25;
-                for (let i = 0; i < 3; i++) {
-                    if (!trayShapes[i].used) {
-                        let shapeW = trayShapes[i].matrix[0].length * 22; let shapeH = trayShapes[i].matrix.length * 22;
-                        if (mouseX >= offsetX - 15 && mouseX <= offsetX + shapeW + 15 && mouseY >= TRAY_Y && mouseY <= TRAY_Y + 20 + shapeH) {
-                            isDragging = true; draggedIndex = i;
-                            let relX = (mouseX - offsetX) / 22; let relY = (mouseY - (TRAY_Y + 10)) / 22;
-                            dragOffsetX = relX * SIZE; dragOffsetY = e.type === 'touchstart' ? (relY * SIZE) + 40 : (relY * SIZE);
-                            break;
-                        }
-                    }
-                    offsetX += 125;
-                }
-            }
-        }
-
-        function pointerMove(e) { if (!isDragging) return; if(e.type === 'touchmove') e.preventDefault(); let pos = getPointerPos(e); mouseX = pos.x; mouseY = pos.y; }
-
-        function pointerUp(e) {
-            if (!isDragging) return;
-            let gridC = Math.round((mouseX - dragOffsetX) / SIZE); let gridR = Math.round((mouseY - dragOffsetY) / SIZE);
-            
-            if (canPlaceShape(trayShapes[draggedIndex].matrix, gridR, gridC)) {
-                placeShape(trayShapes[draggedIndex].matrix, gridR, gridC);
-                trayShapes[draggedIndex].used = true;
-                checkLines();
-                if (trayShapes.every(s => s.used)) refillTray();
-                
-                syncCloudSave(); 
-
-                if (isGameOver()) {
-                    setTimeout(() => {
-                        document.getElementById('modalOverlay').style.display = 'flex';
-                        document.getElementById('gameOverModal').style.display = 'block';
-                        document.getElementById('gameOverScoreDisplay').innerText = score;
-                        
-                        window.currentUser.activeGame.inProgress = false;
-                        syncCloudSave(); 
-                    }, 300); 
-                }
-            }
-            isDragging = false; draggedIndex = -1; 
-        }
-
-        function canPlaceShape(matrix, startR, startC) {
-            for (let r = 0; r < matrix.length; r++) {
-                for (let c = 0; c < matrix[r].length; c++) {
-                    if (matrix[r][c]) {
-                        let targetR = startR + r; let targetC = startC + c;
-                        if (targetR >= ROWS || targetC >= COLS || targetR < 0 || targetC < 0 || board[targetR][targetC] !== 0) return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        function placeShape(matrix, startR, startC) {
-            for (let r = 0; r < matrix.length; r++) {
-                for (let c = 0; c < matrix[r].length; c++) {
-                    if (matrix[r][c]) { board[startR + r][startC + c] = window.currentUser.activeSkin; }
-                }
-            }
-            let points = matrix.flat().filter(Boolean).length;
-            addScore(points);
-        }
-
-        function checkLines() {
-            let rowsToClear = []; let colsToClear = [];
-            for (let r = 0; r < ROWS; r++) if (board[r].every(cell => cell !== 0)) rowsToClear.push(r);
-            for (let c = 0; c < COLS; c++) {
-                let isFull = true;
-                for (let r = 0; r < ROWS; r++) { if (board[r][c] === 0) { isFull = false; break; } }
-                if (isFull) colsToClear.push(c);
-            }
-            rowsToClear.forEach(r => { for (let c = 0; c < COLS; c++) board[r][c] = 0; });
-            colsToClear.forEach(c => { for (let r = 0; r < ROWS; r++) board[r][c] = 0; });
-            let linesCleared = rowsToClear.length + colsToClear.length;
-            if (linesCleared > 0) addScore(linesCleared * 10 + (linesCleared > 1 ? 20 : 0));
-        }
-
-        function isGameOver() {
-            for (let i = 0; i < 3; i++) {
-                if (!trayShapes[i].used) {
-                    for (let r = 0; r < ROWS; r++) {
-                        for (let c = 0; c < COLS; c++) { if (canPlaceShape(trayShapes[i].matrix, r, c)) return false; }
-                    }
-                }
-            }
-            return true;
-        }
-    </script>
+  document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.mode=b.dataset.mode; state.placeType=null;
+    document.querySelectorAll('[data-place]').forEach(x=>x.classList.remove('on'));
+    svg.classList.remove('placing');
+  }));
+  document.querySelectorAll('[data-place]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-place]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.mode='place'; state.placeType=b.dataset.place;
+    svg.classList.add('placing');
+    const tt=TYPES[state.placeType];
+    showTip(tt.requiresIndoor ? ('Click inside a venue to place a '+tt.label+'.') : ('Click anywhere to drop a '+tt.label+'. Range '+tt.range+'u · capacity '+tt.cap+' Mbps.'));
+  }));
+  document.querySelectorAll('[data-scen]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-scen]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.scenario=b.dataset.scen; rerender();
+  }));
+  document.querySelectorAll('[data-layer]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-layer]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.layer=b.dataset.layer; rerender();
+  }));
+  document.getElementById('ns-reset').addEventListener('click',()=>{
+    state.towers=[
+      {id:'M1',x:150,y:90, type:'macro',    name:'Cell-Urban-1',placed:false},
+      {id:'M2',x:380,y:100,type:'macro',    name:'Cell-Sub-1',  placed:false},
+      {id:'M3',x:580,y:80, type:'macro-w',  name:'Cell-Rural-1',placed:false},
+      {id:'S1',x:210,y:220,type:'smallcell',name:'SmCell-DT-1', placed:false},
+    ];
+    state.next=100; state.scenario='normal'; state.layer='coverage'; state.mode='inspect'; state.placeType=null;
+    document.querySelectorAll('[data-scen]').forEach(b=>b.classList.toggle('on',b.dataset.scen==='normal'));
+    document.querySelectorAll('[data-layer]').forEach(b=>b.classList.toggle('on',b.dataset.layer==='coverage'));
+    document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode==='inspect'));
+    document.querySelectorAll('[data-place]').forEach(b=>b.classList.remove('on'));
+    svg.classList.remove('placing'); detail.classList.remove('show'); gMark.innerHTML='';
+    rerender();
+  });
+  rerender();
+})();
+</script>
+</div>
 </body>
 </html>
